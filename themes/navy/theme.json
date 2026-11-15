@@ -1,0 +1,21 @@
+{
+  "animation": {
+    "duration": 600,
+    "entrance": "rise",
+    "transition": "fade"
+  },
+  "category": "simple",
+  "description": "紺の地に水色と黄色。はっきりしていて遠くからも読みやすい。",
+  "name": "Navy",
+  "order": 8,
+  "tokens": {
+    "accent": "#4fb3d9",
+    "accent2": "#f0c75e",
+    "bg": "#152238",
+    "headingStyle": "underline",
+    "muted": "#9fb0c8",
+    "radius": 12,
+    "surface": "#1f2f4a",
+    "text": "#f3f5f8"
+  }
+}

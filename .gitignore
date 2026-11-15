@@ -1,0 +1,16 @@
+# 書き出し結果（HTML / PDF）。GitHub Pages などで公開したい場合はこの行を消す
+decks/*/dist/
+
+node_modules/
+.claude/
+.DS_Store
+Thumbs.db
+*.log
+
+# デスクトップアプリのビルド結果
+release/
+
+# デスクトップアプリ（Tauri）の生成物
+app-dist/
+src-tauri/target/
+src-tauri/gen/

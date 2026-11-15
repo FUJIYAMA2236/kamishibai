@@ -1,0 +1,21 @@
+{
+  "animation": {
+    "duration": 550,
+    "entrance": "fade",
+    "transition": "fade"
+  },
+  "category": "simple",
+  "description": "白地に墨色と青だけ。いちばん素直なビジネス向け。",
+  "name": "Snow",
+  "order": 1,
+  "tokens": {
+    "accent": "#2f6fde",
+    "accent2": "#2f6fde",
+    "bg": "#ffffff",
+    "headingStyle": "underline",
+    "muted": "#6b7280",
+    "radius": 10,
+    "surface": "#f3f5f8",
+    "text": "#1f2328"
+  }
+}

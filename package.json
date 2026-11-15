@@ -1,0 +1,37 @@
+{
+  "name": "kamishibai",
+  "productName": "Kamishibai",
+  "version": "0.3.0",
+  "description": "Markdown で書いて GUI で整える、HTML スライド作成ツール",
+  "license": "MIT",
+  "private": true,
+  "bin": {
+    "kamishibai": "bin/kamishibai.js"
+  },
+  "scripts": {
+    "app": "tauri dev",
+    "dist": "tauri build",
+    "prepare-app": "node scripts/prepare-app.js",
+    "start": "node bin/kamishibai.js serve",
+    "build": "node bin/kamishibai.js build",
+    "pdf": "node bin/kamishibai.js pdf",
+    "test": "node --test",
+    "vendor": "node scripts/update-vendor.js",
+    "vendor:editor": "node scripts/build-codemirror.js",
+    "icon": "node scripts/make-icon.js"
+  },
+  "devDependencies": {
+    "@codemirror/commands": "6.11.1",
+    "@codemirror/lang-markdown": "6.5.2",
+    "@codemirror/language": "6.13.1",
+    "@codemirror/state": "6.7.6",
+    "@codemirror/view": "6.43.15",
+    "@lezer/highlight": "1.2.5",
+    "@lezer/markdown": "1.8.1",
+    "@tauri-apps/cli": "2.12.4",
+    "esbuild": "0.28.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

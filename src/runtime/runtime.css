@@ -1,0 +1,912 @@
+/* ==========================================================================
+   Kamishibai — スライドの基本スタイル
+   --------------------------------------------------------------------------
+   - すべて .ks-deck の中だけに効く（エディタのプレビューにもそのまま埋め込むため）
+   - 色・フォント・余白は CSS 変数 --ks-* で受け取る（値は theme.json / deck.json 由来）
+   - 書き出した HTML のページ全体に関わる指定は html.ks-page 配下に限定
+   - テーマ固有の装飾は themes/<名前>/theme.css 側に書く（ここは全テーマ共通）
+   ========================================================================== */
+
+.ks-deck {
+  --ks-w: 1280px;
+  --ks-h: 720px;
+  --ks-scale: 1;
+  --ks-ease: cubic-bezier(0.22, 0.8, 0.24, 1);
+  --ks-dur: 650ms;
+  --ks-stagger: 70ms;
+  --ks-tdur: calc(var(--ks-dur) * 0.8);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  color: var(--ks-text);
+  font-family: var(--ks-font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  text-align: left;
+}
+.ks-deck *,
+.ks-deck *::before,
+.ks-deck *::after {
+  box-sizing: border-box;
+}
+
+/* 論理サイズ固定のステージを transform で画面に合わせる（プロジェクタの解像度に依存しない） */
+.ks-stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--ks-w);
+  height: var(--ks-h);
+  margin: calc(var(--ks-h) / -2) 0 0 calc(var(--ks-w) / -2);
+  transform: scale(var(--ks-scale));
+  transform-origin: 50% 50%;
+  overflow: hidden;
+  background: var(--ks-bg);
+}
+
+/* .ks-static = アニメーションなしの静止表示（サムネイル・一覧・発表者ビュー用） */
+.ks-deck.ks-static {
+  position: relative;
+  inset: auto;
+  width: calc(var(--ks-w) * var(--ks-scale));
+  height: calc(var(--ks-h) * var(--ks-scale));
+}
+.ks-static > .ks-stage {
+  left: 0;
+  top: 0;
+  margin: 0;
+  transform-origin: 0 0;
+}
+
+/* --------------------------------------------------------------------------
+   スライド
+   -------------------------------------------------------------------------- */
+.ks-slide {
+  /* トークンから導出する色。スライド単位の色上書きに追従させるため、ここで定義する */
+  --ks-border: color-mix(in srgb, var(--ks-text) 14%, transparent);
+  --ks-soft: color-mix(in srgb, var(--ks-text) 7%, transparent);
+  --ks-accent-soft: color-mix(in srgb, var(--ks-accent) 16%, transparent);
+  --ks-grad: linear-gradient(100deg, var(--ks-accent), var(--ks-accent2));
+  --ks-px: calc(var(--ks-padding) * 1.15);
+
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--ks-bg-slide, var(--ks-bg));
+  color: var(--ks-text);
+  font-size: calc(var(--ks-base-size) * var(--ks-fit, 1));
+  line-height: var(--ks-line-height);
+  line-break: strict;
+  overflow-wrap: anywhere;
+
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity calc(var(--ks-tdur) * 0.6) ease,
+    transform var(--ks-tdur) var(--ks-ease),
+    filter var(--ks-tdur) var(--ks-ease),
+    visibility 0s linear var(--ks-tdur);
+}
+.ks-slide.is-active {
+  opacity: 1;
+  visibility: visible;
+  z-index: 2;
+  transition:
+    opacity var(--ks-tdur) ease,
+    transform var(--ks-tdur) var(--ks-ease),
+    filter var(--ks-tdur) var(--ks-ease),
+    visibility 0s;
+}
+.ks-slide.ks-layout-title {
+  background: var(--ks-bg-title, var(--ks-bg-slide, var(--ks-bg)));
+}
+.ks-slide.ks-layout-section {
+  background: var(--ks-bg-section, var(--ks-bg-slide, var(--ks-bg)));
+}
+
+/* スライド切り替え */
+.ks-slide[data-transition='none'],
+.ks-slide[data-transition='none'].is-active {
+  transition: none;
+}
+.ks-slide[data-transition='slide'].is-future { transform: translateX(56px); }
+.ks-slide[data-transition='slide'].is-past { transform: translateX(-56px); }
+.ks-slide[data-transition='zoom'].is-future { transform: scale(0.96); }
+.ks-slide[data-transition='zoom'].is-past { transform: scale(1.04); }
+.ks-slide[data-transition='blur']:not(.is-active) { filter: blur(14px); }
+
+.ks-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.ks-inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  padding: var(--ks-padding) var(--ks-px);
+}
+.ks-main {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.ks-head {
+  flex: none;
+  margin-bottom: 0.9em;
+}
+.ks-body {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75em;
+}
+.ks-slide[data-valign='center'] .ks-body { justify-content: center; }
+/* カラム内の縦位置（data-col-valign: top / center / bottom。render.js が決める） */
+.ks-slide[data-col-valign='center'] .ks-col { justify-content: center; }
+.ks-slide[data-col-valign='bottom'] .ks-col { justify-content: flex-end; }
+/* 縦中央: 図・画像・カラムがないスライドは、見出しと本文をひとかたまりにして中央へ
+   （本文だけを中央にすると見出しと離れて間延びするため）。
+   図などは高さいっぱいに広げたいので、従来どおり本文の中だけで中央寄せにする */
+.ks-slide[data-valign='center']:not(:has(.ks-figure, .ks-mermaid, .ks-cols)) .ks-main { justify-content: center; }
+.ks-slide[data-valign='center']:not(:has(.ks-figure, .ks-mermaid, .ks-cols)) .ks-body { flex: 0 1 auto; }
+
+/* --------------------------------------------------------------------------
+   文字まわり
+   -------------------------------------------------------------------------- */
+.ks-slide h1,
+.ks-slide h2,
+.ks-slide h3,
+.ks-slide h4 {
+  margin: 0;
+  font-family: var(--ks-font-heading);
+  font-weight: var(--ks-heading-weight);
+  line-height: 1.25;
+  letter-spacing: var(--ks-letter-spacing);
+  font-feature-settings: 'palt';
+  text-wrap: balance;
+  word-break: auto-phrase;
+}
+.ks-slide h1 { font-size: calc(var(--ks-heading-scale) * 1.2em); }
+.ks-slide h2 { font-size: calc(var(--ks-heading-scale) * 1em); }
+.ks-slide h3 { font-size: 1.15em; color: var(--ks-accent); }
+.ks-slide h4 { font-size: 1em; color: var(--ks-muted); }
+.ks-slide p { margin: 0; }
+.ks-slide strong { font-weight: 700; color: color-mix(in srgb, var(--ks-accent) 35%, var(--ks-text)); }
+.ks-slide em { font-style: normal; color: var(--ks-accent); }
+.ks-slide a { color: var(--ks-accent); text-decoration: underline; text-decoration-thickness: 0.06em; text-underline-offset: 0.2em; }
+.ks-slide mark { background: var(--ks-accent-soft); color: inherit; padding: 0.05em 0.25em; border-radius: 0.25em; }
+.ks-slide small { color: var(--ks-muted); }
+.ks-slide hr { width: 100%; border: 0; border-top: 1px solid var(--ks-border); margin: 0.2em 0; }
+.ks-slide kbd {
+  font-family: var(--ks-font-mono);
+  font-size: 0.8em;
+  padding: 0.1em 0.45em;
+  border: 1px solid var(--ks-border);
+  border-bottom-width: 2px;
+  border-radius: 0.35em;
+  background: var(--ks-soft);
+}
+
+.ks-slide ul,
+.ks-slide ol {
+  margin: 0;
+  padding-left: 1.35em;
+}
+.ks-slide li { margin: 0.4em 0; padding-left: 0.2em; }
+.ks-slide li:first-child { margin-top: 0; }
+.ks-slide li:last-child { margin-bottom: 0; }
+.ks-slide li::marker { color: var(--ks-accent); font-weight: 700; }
+.ks-slide li > ul,
+.ks-slide li > ol { margin-top: 0.4em; font-size: 0.86em; color: color-mix(in srgb, var(--ks-text) 82%, transparent); }
+.ks-deck[data-bullet-style='dash'] ul { list-style-type: '–  '; }
+.ks-deck[data-bullet-style='arrow'] ul { list-style-type: '→  '; }
+.ks-deck[data-bullet-style='check'] ul { list-style-type: '✓  '; }
+.ks-deck[data-bullet-style='square'] ul { list-style-type: square; }
+.ks-deck[data-bullet-style='custom'] ul { list-style-type: var(--ks-bullet-char, '◆  '); }
+.ks-deck[data-bullet-style='custom'] ul ul { list-style-type: var(--ks-bullet-char2, '–  '); }
+
+.ks-slide blockquote {
+  margin: 0;
+  padding: 0.3em 0 0.3em 1em;
+  border-left: 0.2em solid var(--ks-accent);
+  color: color-mix(in srgb, var(--ks-text) 80%, transparent);
+}
+
+.ks-slide code {
+  font-family: var(--ks-font-mono);
+  font-size: 0.86em;
+  padding: 0.12em 0.4em;
+  border-radius: 0.35em;
+  background: var(--ks-soft);
+}
+.ks-slide pre.ks-code {
+  position: relative;
+  margin: 0;
+  padding: 1.1em 1.3em;
+  overflow: hidden;
+  border: 1px solid var(--ks-border);
+  border-radius: var(--ks-radius);
+  background: var(--ks-surface);
+  font-size: 0.7em;
+  line-height: 1.6;
+  white-space: pre;
+  tab-size: 2;
+}
+.ks-slide pre.ks-code code { padding: 0; background: none; font-size: 1em; }
+.ks-slide pre.ks-code[data-lang]::after {
+  content: attr(data-lang);
+  position: absolute;
+  top: 0.7em;
+  right: 1em;
+  font-family: var(--ks-font-body);
+  font-size: 0.7em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ks-muted);
+}
+/* シンタックスハイライト（highlight.js のクラス）。色はテーマのアクセントから導出 */
+.ks-code .hljs-comment, .ks-code .hljs-quote, .ks-code .hljs-meta { color: var(--ks-muted); font-style: italic; }
+.ks-code .hljs-keyword, .ks-code .hljs-selector-tag, .ks-code .hljs-literal, .ks-code .hljs-built_in, .ks-code .hljs-tag { color: var(--ks-accent); }
+.ks-code .hljs-string, .ks-code .hljs-attr, .ks-code .hljs-symbol, .ks-code .hljs-addition, .ks-code .hljs-regexp { color: var(--ks-accent2); }
+.ks-code .hljs-number, .ks-code .hljs-title, .ks-code .hljs-section, .ks-code .hljs-type, .ks-code .hljs-selector-class, .ks-code .hljs-selector-id {
+  color: color-mix(in srgb, var(--ks-accent) 55%, var(--ks-accent2));
+}
+.ks-code .hljs-variable, .ks-code .hljs-template-variable, .ks-code .hljs-name, .ks-code .hljs-attribute { color: color-mix(in srgb, var(--ks-accent2) 55%, var(--ks-text)); }
+.ks-code .hljs-deletion { color: var(--ks-muted); text-decoration: line-through; }
+.ks-code .hljs-emphasis { font-style: italic; }
+.ks-code .hljs-strong { font-weight: 700; }
+
+.ks-slide table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82em;
+  line-height: 1.45;
+}
+.ks-slide th {
+  padding: 0.6em 0.9em;
+  text-align: left;
+  font-weight: 700;
+  color: var(--ks-accent);
+  border-bottom: 2px solid var(--ks-accent);
+}
+.ks-slide td {
+  padding: 0.6em 0.9em;
+  border-bottom: 1px solid var(--ks-border);
+}
+.ks-slide tbody tr:nth-child(even) td { background: var(--ks-soft); }
+
+/* 見出しの飾り（デザインパネル「見出しの飾り」） */
+.ks-deck[data-heading-style='bar'] .ks-head {
+  padding-left: 0.75em;
+  border-left: 0.24em solid transparent;
+  border-image: linear-gradient(to bottom, var(--ks-accent), var(--ks-accent2)) 1;
+}
+.ks-deck[data-heading-style='underline'] .ks-head::after {
+  content: '';
+  display: block;
+  width: 2.6em;
+  height: 0.17em;
+  margin-top: 0.55em;
+  border-radius: 1em;
+  background: var(--ks-grad);
+}
+.ks-deck[data-heading-style='gradient'] .ks-head h1,
+.ks-deck[data-heading-style='gradient'] .ks-head h2,
+.ks-deck[data-heading-style='gradient'] .ks-layout-title h1,
+.ks-deck[data-heading-style='gradient'] .ks-layout-section h2 {
+  width: fit-content;
+  max-width: 100%;
+  padding-bottom: 0.08em;
+  background: var(--ks-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.ks-deck[data-heading-style='tag'] .ks-head h2 {
+  display: inline-block;
+  padding: 0.14em 0.6em;
+  border-radius: calc(var(--ks-radius) * 0.5);
+  background: var(--ks-accent);
+  color: var(--ks-bg);
+}
+
+/* --------------------------------------------------------------------------
+   画像・図
+   -------------------------------------------------------------------------- */
+.ks-figure {
+  flex: 1 1 0;
+  min-height: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+}
+.ks-figure img {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: calc(var(--ks-radius) * 0.7);
+}
+.ks-figure.ks-sized { flex: 0 1 auto; }
+.ks-figure-row { flex-direction: row; gap: 1em; }
+.ks-figure-row img { flex: 1 1 0; min-width: 0; }
+.ks-figure figcaption { flex: none; font-size: 0.7em; color: var(--ks-muted); }
+.ks-slide img.shadow { box-shadow: 0 18px 50px -12px rgba(0, 0, 0, 0.45); }
+.ks-slide img.plain { border-radius: 0; }
+.ks-slide img.round { border-radius: 999px; }
+.ks-slide p > img { max-width: 100%; vertical-align: middle; }
+
+.ks-mermaid {
+  flex: 1 1 0;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ks-mermaid-src { display: none; }
+.ks-mermaid-out {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ks-mermaid-out svg {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  overflow: visible;
+}
+.ks-mermaid-error {
+  width: 100%;
+  margin: 0;
+  padding: 1em;
+  border: 1px dashed var(--ks-accent);
+  border-radius: var(--ks-radius);
+  font-family: var(--ks-font-mono);
+  font-size: 0.6em;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  color: var(--ks-muted);
+}
+
+/* --------------------------------------------------------------------------
+   レイアウト
+   -------------------------------------------------------------------------- */
+
+/* 中央に積むタイプ（title / section / center / quote） */
+.ks-layout-title .ks-body,
+.ks-layout-section .ks-body,
+.ks-layout-center .ks-body,
+.ks-layout-quote .ks-body {
+  align-items: flex-start;
+}
+.ks-slide[data-align='center'] .ks-head,
+.ks-slide[data-align='center'].ks-layout-title .ks-body,
+.ks-slide[data-align='center'].ks-layout-section .ks-body,
+.ks-slide[data-align='center'].ks-layout-center .ks-body,
+.ks-slide[data-align='center'].ks-layout-quote .ks-body {
+  align-items: center;
+  text-align: center;
+}
+.ks-slide[data-align='center'] .ks-head h1,
+.ks-slide[data-align='center'] .ks-head h2,
+.ks-slide[data-align='center'] .ks-body > h1,
+.ks-slide[data-align='center'] .ks-body > h2 {
+  margin-left: auto;
+  margin-right: auto;
+}
+.ks-slide[data-align='center'] .ks-head::after { margin-left: auto; margin-right: auto; }
+.ks-slide[data-align='center'] ul,
+.ks-slide[data-align='center'] ol { text-align: left; }
+
+.ks-layout-title .ks-body { gap: 0.55em; }
+.ks-layout-title h1 { font-size: calc(var(--ks-title-scale) * 1em); line-height: 1.15; }
+.ks-layout-title h2 { font-size: 1.5em; font-weight: 500; }
+.ks-layout-title p { font-size: 1.05em; color: var(--ks-muted); }
+.ks-layout-title h1 + p { margin-top: 0.5em; font-size: 1.25em; color: color-mix(in srgb, var(--ks-text) 78%, transparent); }
+
+.ks-layout-section .ks-body { gap: 0.5em; }
+.ks-layout-section .ks-body::before {
+  content: '';
+  width: 3em;
+  height: 0.22em;
+  margin-bottom: 0.5em;
+  border-radius: 1em;
+  background: var(--ks-grad);
+}
+.ks-layout-section h2 { font-size: calc(var(--ks-title-scale) * 0.72em); }
+.ks-layout-section p { color: var(--ks-muted); }
+
+.ks-layout-center .ks-body { font-size: 1.35em; line-height: 1.6; }
+.ks-layout-center .ks-body > p { max-width: 26em; text-wrap: balance; }
+
+.ks-layout-quote blockquote {
+  max-width: 24em;
+  padding: 0;
+  border: 0;
+  font-family: var(--ks-font-heading);
+  font-size: 1.45em;
+  line-height: 1.55;
+  color: var(--ks-text);
+}
+.ks-layout-quote blockquote::before {
+  content: '\201C';
+  display: block;
+  height: 0.55em;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 3.4em;
+  line-height: 1;
+  color: var(--ks-accent);
+}
+.ks-layout-quote blockquote p + p { margin-top: 1em; font-family: var(--ks-font-body); font-size: 0.55em; color: var(--ks-muted); }
+
+.ks-cols {
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr); /* 高さはスライドに収める（はみ出しはカラムごとに文字を縮めて収める: runtime.js の fitColumns） */
+  gap: calc(var(--ks-padding) * 0.7);
+  /* カラムの文字の大きさ: 列が多いほど小さく（--ks-col-fit は収まらないときに runtime.js が下げる） */
+  --ks-col-base: 1;
+  font-size: calc(1em * var(--ks-col-base) * var(--ks-col-fit, 1));
+}
+.ks-cols[data-count='3'] { --ks-col-base: 0.9; }
+.ks-cols:is([data-count='4'], [data-count='5'], [data-count='6']) { --ks-col-base: 0.8; }
+.ks-cols-pre,
+.ks-cols-post {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75em;
+}
+.ks-col {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75em;
+  overflow-wrap: anywhere;
+}
+
+/* ---- カラムの囲み（data-col-style: outline 枠線 / fill 塗り / card カード） ----
+   色は render.js が --ks-col-N（塗り色）と --ks-on-col-N（その上の文字色）で渡す */
+.ks-col:nth-child(4n + 1) { --ks-col-c: var(--ks-col-1, var(--ks-accent)); --ks-on-c: var(--ks-on-col-1, #fff); }
+.ks-col:nth-child(4n + 2) { --ks-col-c: var(--ks-col-2, var(--ks-accent2)); --ks-on-c: var(--ks-on-col-2, #fff); }
+.ks-col:nth-child(4n + 3) { --ks-col-c: var(--ks-col-3, var(--ks-accent)); --ks-on-c: var(--ks-on-col-3, #fff); }
+.ks-col:nth-child(4n + 4) { --ks-col-c: var(--ks-col-4, var(--ks-accent2)); --ks-on-c: var(--ks-on-col-4, #fff); }
+.ks-slide:is([data-col-style='outline'], [data-col-style='fill'], [data-col-style='card']) .ks-cols { gap: calc(var(--ks-padding) * 0.55); }
+.ks-slide:is([data-col-style='outline'], [data-col-style='fill'], [data-col-style='card']) .ks-col {
+  padding: 1em 1.15em;
+  border-radius: var(--ks-box-radius, 20px); /* 「箱の角丸」。テーマ全体の角丸とは別 */
+}
+.ks-slide[data-col-style='outline'] .ks-col {
+  border: 0.09em solid var(--ks-col-c);
+  background: color-mix(in srgb, var(--ks-col-c) 7%, transparent);
+}
+.ks-slide[data-col-style='fill'] .ks-col {
+  background: var(--ks-col-c);
+  color: var(--ks-on-c);
+}
+.ks-slide[data-col-style='fill'] .ks-col :is(h3, h4, strong, em, a, code) { color: inherit; }
+.ks-slide[data-col-style='fill'] .ks-col li::marker { color: inherit; }
+.ks-slide[data-col-style='fill'] .ks-col code { background: color-mix(in srgb, currentColor 14%, transparent); }
+.ks-slide:is([data-col-style='outline'], [data-col-style='card']) .ks-col > :is(h3, h4) { color: color-mix(in srgb, var(--ks-col-c) 82%, var(--ks-text)); }
+.ks-slide[data-col-style='card'] .ks-col {
+  background: var(--ks-surface);
+  box-shadow: inset 0 0.22em 0 var(--ks-col-c), 0 0 0 1px var(--ks-border), 0 22px 48px -30px rgba(0, 0, 0, 0.55);
+}
+/* 箱の先頭の小見出しはラベル風に、短い本文は大きく（「小見出し＋一言」の箱がきれいに見えるように） */
+.ks-slide:is([data-col-style='outline'], [data-col-style='fill'], [data-col-style='card']) .ks-col > :is(h3, h4):first-child {
+  font-size: 0.92em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.ks-slide:is([data-col-style='outline'], [data-col-style='fill'], [data-col-style='card']) .ks-col:not(:has(> :nth-child(4))) > p {
+  font-size: 1.22em;
+  font-weight: 500;
+  line-height: 1.45;
+}
+/* 箱の中央・下詰め: 先頭の小見出し（ラベル）は上に残し、残りを箱の中央 / 下へ */
+.ks-slide:is([data-col-valign='center'], [data-col-valign='bottom']):is([data-col-style='outline'], [data-col-style='fill'], [data-col-style='card']) .ks-col { justify-content: flex-start; }
+.ks-slide:is([data-col-valign='center'], [data-col-valign='bottom']):is([data-col-style='outline'], [data-col-style='fill'], [data-col-style='card']) .ks-col > :is(h3, h4):first-child + *,
+.ks-slide:is([data-col-valign='center'], [data-col-valign='bottom']):is([data-col-style='outline'], [data-col-style='fill'], [data-col-style='card']) .ks-col > :not(h3, h4):first-child { margin-top: auto; }
+.ks-slide[data-col-valign='center']:is([data-col-style='outline'], [data-col-style='fill'], [data-col-style='card']) .ks-col > :last-child:not(:first-child),
+.ks-slide[data-col-valign='center']:is([data-col-style='outline'], [data-col-style='fill'], [data-col-style='card']) .ks-col > :not(h3, h4):only-child { margin-bottom: auto; }
+/* カラム内の横位置 */
+.ks-slide[data-col-align='center'] .ks-col { align-items: center; text-align: center; }
+.ks-slide[data-col-align='center'] .ks-col :is(ul, ol, pre, table) { text-align: left; }
+
+.ks-layout-image-right .ks-inner,
+.ks-layout-image-left .ks-inner { gap: calc(var(--ks-padding) * 0.9); }
+.ks-layout-image-left .ks-inner { flex-direction: row-reverse; }
+.ks-media {
+  flex: 0 0 var(--ks-media-size, 46%);
+  position: relative;
+  min-width: 0;
+}
+.ks-media img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--ks-media-pos, 50% 50%);
+}
+/* cover のときはスライドの端まで断ち落とす */
+.ks-layout-image-right[data-fit='cover'] .ks-media { margin: calc(var(--ks-padding) * -1) calc(var(--ks-px) * -1) calc(var(--ks-padding) * -1) 0; }
+.ks-layout-image-left[data-fit='cover'] .ks-media { margin: calc(var(--ks-padding) * -1) 0 calc(var(--ks-padding) * -1) calc(var(--ks-px) * -1); }
+.ks-slide[data-fit='contain'] .ks-media img { object-fit: contain; }
+
+.ks-layout-image-full .ks-bg img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--ks-media-pos, 50% 50%);
+}
+.ks-layout-image-full[data-fit='contain'] .ks-bg img { object-fit: contain; }
+.ks-layout-image-full .ks-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--ks-bg) 94%, transparent) 0%,
+    color-mix(in srgb, var(--ks-bg) 62%, transparent) 50%,
+    color-mix(in srgb, var(--ks-bg) 22%, transparent) 100%
+  );
+}
+.ks-layout-image-full .ks-main { justify-content: flex-end; }
+.ks-layout-image-full .ks-body { flex: 0 1 auto; }
+.ks-layout-image-full[data-valign='center'] .ks-main { justify-content: center; }
+
+/* --------------------------------------------------------------------------
+   フッター・ページ番号・進捗バー
+   -------------------------------------------------------------------------- */
+.ks-chrome {
+  position: absolute;
+  left: var(--ks-px);
+  right: var(--ks-px);
+  bottom: 22px;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 2em;
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  color: var(--ks-muted);
+  pointer-events: none;
+}
+.ks-page { margin-left: auto; font-variant-numeric: tabular-nums; }
+.ks-page b { font-weight: 600; }
+.ks-page i { display: none; font-style: normal; opacity: 0.6; }
+.ks-layout-title .ks-chrome { display: none; }
+.ks-notes { display: none; }
+
+.ks-progress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  z-index: 5;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--ks-accent), var(--ks-accent2));
+  transform: scaleX(var(--ks-progress, 0));
+  transform-origin: 0 50%;
+  transition: transform 0.5s var(--ks-ease);
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   アニメーション
+   - .ks-anim : スライド表示時に順番に登場する要素（runtime.js が付与し --i で順番を渡す）
+   - .ks-step : 「段階表示」でクリックごとに現れる要素
+   -------------------------------------------------------------------------- */
+.ks-anim { opacity: 0; }
+.ks-slide.is-active .ks-anim {
+  animation: var(--ks-entrance, ks-rise) var(--ks-dur) var(--ks-ease) both;
+  animation-delay: calc(var(--ks-tdur) * 0.3 + var(--i, 0) * var(--ks-stagger));
+}
+.ks-slide[data-entrance='fade'] { --ks-entrance: ks-fade; }
+.ks-slide[data-entrance='rise'] { --ks-entrance: ks-rise; }
+.ks-slide[data-entrance='slide'] { --ks-entrance: ks-slide; }
+.ks-slide[data-entrance='zoom'] { --ks-entrance: ks-zoom; }
+.ks-slide[data-entrance='blur'] { --ks-entrance: ks-blur; }
+.ks-slide[data-entrance='none'] .ks-anim { opacity: 1; animation: none; }
+
+@keyframes ks-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ks-rise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+@keyframes ks-slide { from { opacity: 0; transform: translateX(-26px); } to { opacity: 1; transform: none; } }
+@keyframes ks-zoom { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: none; } }
+@keyframes ks-blur { from { opacity: 0; filter: blur(12px); transform: translateY(6px); } to { opacity: 1; filter: none; transform: none; } }
+
+.ks-step {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.5s var(--ks-ease), transform 0.5s var(--ks-ease);
+}
+.ks-step.is-shown { opacity: 1; transform: none; }
+
+.ks-static .ks-slide,
+.ks-noanim .ks-slide {
+  transition: none;
+}
+.ks-static .ks-slide {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  filter: none;
+}
+/* .ks-slide.is-active .ks-anim より強くするため、セレクタを長めに書いている */
+.ks-deck.ks-static .ks-slide .ks-anim,
+.ks-deck.ks-static .ks-slide .ks-step,
+.ks-deck.ks-noanim .ks-slide .ks-anim,
+.ks-deck.ks-noanim .ks-slide .ks-step {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  animation: none;
+  transition: none;
+}
+
+/* 発表者ビュー: まだ出していないステップを薄く見せる */
+.ks-deck.ks-static.ks-dim-steps .ks-slide .ks-step:not(.is-shown) { opacity: 0.25; }
+/* runtime.js がはみ出しを計測する間だけ、動きを止める */
+.ks-slide.ks-measuring .ks-anim,
+.ks-slide.ks-measuring .ks-step {
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ks-slide, .ks-slide.is-active { transition: opacity 0.2s linear, visibility 0s; transform: none !important; filter: none !important; }
+  .ks-anim { opacity: 1; animation: none !important; }
+  .ks-step { transform: none; transition: opacity 0.2s linear; }
+}
+
+/* ==========================================================================
+   ここから下は「書き出した HTML ページ」専用（html.ks-page）
+   ========================================================================== */
+html.ks-page,
+html.ks-page body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #000;
+}
+html.ks-page.ks-idle .ks-deck { cursor: none; }
+
+.ks-ui {
+  font-family: system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #f2f4f8;
+  -webkit-font-smoothing: antialiased;
+}
+.ks-ui *, .ks-ui *::before, .ks-ui *::after { box-sizing: border-box; }
+.ks-ui button { font: inherit; color: inherit; cursor: pointer; }
+
+.ks-controls {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(20, 22, 30, 0.72);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.6);
+  transform: translateX(-50%);
+  transition: opacity 0.3s, transform 0.3s var(--ks-ease, ease);
+}
+html.ks-idle .ks-controls { opacity: 0; transform: translateX(-50%) translateY(12px); pointer-events: none; }
+.ks-controls button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+}
+.ks-controls button:hover { background: rgba(255, 255, 255, 0.14); }
+.ks-controls svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.ks-controls .ks-count { min-width: 64px; padding: 0 6px; text-align: center; font-variant-numeric: tabular-nums; opacity: 0.85; }
+.ks-controls .ks-sep { width: 1px; height: 18px; margin: 0 4px; background: rgba(255, 255, 255, 0.16); }
+
+.ks-blackout {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s;
+}
+.ks-blackout.is-on { opacity: 1; pointer-events: auto; }
+
+.ks-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow: auto;
+  background: rgba(12, 14, 20, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.ks-overlay[hidden] { display: none; }
+.ks-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 22px;
+  padding: 36px;
+}
+.ks-ov-item {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  outline: 2px solid transparent;
+  outline-offset: 3px;
+  cursor: pointer;
+  transition: outline-color 0.15s, transform 0.2s;
+}
+.ks-ov-item:hover { transform: translateY(-2px); outline-color: rgba(255, 255, 255, 0.35); }
+.ks-ov-item.is-current { outline-color: #7c9cff; }
+.ks-ov-item .ks-ov-num {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  z-index: 3;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  font-size: 11px;
+}
+
+.ks-help { display: grid; place-items: center; }
+.ks-help-card {
+  width: min(560px, calc(100vw - 48px));
+  padding: 28px 32px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  background: rgba(28, 31, 42, 0.96);
+}
+.ks-help-card h2 { margin: 0 0 14px; font-size: 16px; }
+.ks-help-card dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 18px; margin: 0; }
+.ks-help-card dt { white-space: nowrap; }
+.ks-help-card dd { margin: 0; opacity: 0.8; }
+.ks-help-card kbd {
+  display: inline-block;
+  min-width: 22px;
+  padding: 1px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  font: inherit;
+  font-size: 12px;
+  text-align: center;
+}
+
+.ks-toast {
+  position: fixed;
+  left: 50%;
+  top: 22px;
+  z-index: 60;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(20, 22, 30, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  transform: translateX(-50%);
+  transition: opacity 0.3s;
+}
+
+/* --------------------------------------------------------------------------
+   発表者ビュー（別ウィンドウ。S キーで開く）
+   -------------------------------------------------------------------------- */
+body.ks-presenter {
+  height: 100vh;
+  margin: 0;
+  overflow: hidden;
+  background: #101218;
+}
+.ks-pv {
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px;
+}
+.ks-pv-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 14px;
+}
+.ks-pv-timer { font-size: 30px; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.ks-pv-clock { font-size: 18px; opacity: 0.7; font-variant-numeric: tabular-nums; }
+.ks-pv-count { margin-left: auto; font-size: 18px; font-variant-numeric: tabular-nums; }
+.ks-pv button {
+  padding: 5px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+}
+.ks-pv button:hover { background: rgba(255, 255, 255, 0.14); }
+.ks-pv-label button { color: #f2f4f8; margin-left: 4px; padding: 1px 8px; font-size: 11px; letter-spacing: 0; text-transform: none; vertical-align: middle; }
+.ks-pv-label:has(button) { opacity: 1; color: rgba(255, 255, 255, 0.55); }
+.ks-pv-left, .ks-pv-right { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+.ks-pv-label { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.55; }
+.ks-pv-frame { flex: none; overflow: hidden; border-radius: 10px; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1); }
+.ks-pv-end { display: grid; place-items: center; aspect-ratio: 16 / 9; border-radius: 10px; background: #000; opacity: 0.7; }
+.ks-pv-notes {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: var(--ks-pv-notes-size, 20px);
+  line-height: 1.7;
+}
+.ks-pv-notes > :first-child { margin-top: 0; }
+.ks-pv-notes p, .ks-pv-notes ul, .ks-pv-notes ol { margin: 0 0 0.7em; }
+.ks-pv-notes ul, .ks-pv-notes ol { padding-left: 1.3em; }
+.ks-pv-notes .ks-pv-empty { opacity: 0.4; }
+
+/* --------------------------------------------------------------------------
+   印刷 / PDF 書き出し（1 スライド = 1 ページ）。@page のサイズは build.js が出力する
+   -------------------------------------------------------------------------- */
+@media print {
+  html.ks-page,
+  html.ks-page body { height: auto; overflow: visible; background: none; }
+  html.ks-page .ks-deck { position: static; overflow: visible; }
+  html.ks-page .ks-stage {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    transform: none;
+    background: none;
+  }
+  html.ks-page .ks-slide {
+    position: relative;
+    inset: auto;
+    width: var(--ks-w);
+    height: var(--ks-h);
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: none !important;
+    filter: none !important;
+    break-after: page;
+    break-inside: avoid;
+  }
+  html.ks-page .ks-slide:last-of-type { break-after: auto; }
+  .ks-anim, .ks-step { opacity: 1 !important; transform: none !important; filter: none !important; animation: none !important; }
+  .ks-ui, .ks-progress { display: none !important; }
+  .ks-deck, .ks-deck * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

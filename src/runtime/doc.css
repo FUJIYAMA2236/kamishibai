@@ -1,0 +1,219 @@
+/* ==========================================================================
+   doc.css — 資料（読み物）形式の見た目
+   --------------------------------------------------------------------------
+   資料 HTML / PDF の書き出し（build.js の buildDocument）と、エディタの「資料プレビュー」（/doc/<デッキ名>）で使う。
+
+   フォントとアクセント色はテーマのトークン（--ks-font-*, --ks-accent, --ks-accent2）を使い、
+   背景と文字色は印刷向けに白地へ固定する（暗いテーマでも資料は白地で読みやすく）。
+   ========================================================================== */
+.ks-doc {
+  --ks-bg: #ffffff;
+  --ks-text: #1f2329;
+  --ks-muted: #6b7280;
+  --ks-surface: #f4f5f7;
+  --ks-border: #e3e6eb;
+  --ks-base-size: 20px; /* mermaid の文字の大きさの基準 */
+  --ks-radius: 10px;
+  --doc-ink: color-mix(in srgb, var(--ks-accent) 70%, #0b0d12); /* 白地でも読めるアクセント色 */
+  --doc-ink2: color-mix(in srgb, var(--ks-accent2) 62%, #0b0d12);
+  --doc-tint: color-mix(in srgb, var(--ks-accent) 9%, #fff);
+
+  box-sizing: border-box;
+  background: var(--ks-bg);
+  color: var(--ks-text);
+  font-family: var(--ks-font-body);
+  font-size: 15.5px;
+  line-height: 1.85;
+  line-break: strict;
+  overflow-wrap: anywhere;
+  -webkit-font-smoothing: antialiased;
+}
+.ks-doc *,
+.ks-doc *::before,
+.ks-doc *::after { box-sizing: border-box; }
+
+.ks-doc :is(h1, h2, h3, h4) {
+  font-family: var(--ks-font-heading);
+  font-weight: var(--ks-heading-weight, 700);
+  line-height: 1.35;
+  letter-spacing: var(--ks-letter-spacing, 0);
+  font-feature-settings: 'palt';
+  text-wrap: balance;
+  margin: 0 0 0.6em;
+}
+.ks-doc h1 { font-size: 2.1em; line-height: 1.25; }
+.ks-doc h2 {
+  font-size: 1.42em;
+  margin-top: 0.4em;
+  padding-left: 0.6em;
+  border-left: 0.2em solid transparent;
+  border-image: linear-gradient(to bottom, var(--ks-accent), var(--ks-accent2)) 1;
+}
+.ks-doc h3 { font-size: 1.12em; color: var(--doc-ink); }
+.ks-doc h4 { font-size: 1em; color: var(--ks-muted); }
+.ks-doc p { margin: 0 0 0.9em; }
+.ks-doc strong { color: var(--ks-text); font-weight: 700; background: linear-gradient(transparent 64%, color-mix(in srgb, var(--ks-accent) 22%, transparent) 64%); }
+.ks-doc em { font-style: normal; color: var(--doc-ink); }
+.ks-doc a { color: var(--doc-ink); text-underline-offset: 0.2em; }
+.ks-doc mark { background: color-mix(in srgb, var(--ks-accent2) 28%, #fff); color: inherit; padding: 0 0.2em; border-radius: 0.2em; }
+.ks-doc small { color: var(--ks-muted); }
+.ks-doc hr { border: 0; border-top: 1px solid var(--ks-border); margin: 1.6em 0; }
+.ks-doc kbd {
+  font-family: var(--ks-font-mono);
+  font-size: 0.82em;
+  padding: 0.05em 0.4em;
+  border: 1px solid var(--ks-border);
+  border-bottom-width: 2px;
+  border-radius: 0.3em;
+  background: var(--ks-surface);
+}
+
+.ks-doc ul,
+.ks-doc ol { margin: 0 0 0.9em; padding-left: 1.4em; }
+.ks-doc li { margin: 0.2em 0; }
+.ks-doc li::marker { color: var(--ks-accent); }
+.ks-doc blockquote {
+  margin: 0 0 0.9em;
+  padding: 0.6em 1em;
+  border-left: 0.22em solid var(--ks-accent);
+  border-radius: 0 var(--ks-radius) var(--ks-radius) 0;
+  background: var(--doc-tint);
+  color: color-mix(in srgb, var(--ks-text) 85%, #fff);
+}
+.ks-doc blockquote > :last-child { margin-bottom: 0; }
+
+.ks-doc code {
+  font-family: var(--ks-font-mono);
+  font-size: 0.88em;
+  padding: 0.1em 0.38em;
+  border-radius: 0.3em;
+  background: var(--ks-surface);
+}
+.ks-doc pre.ks-code {
+  position: relative;
+  margin: 0 0 1em;
+  padding: 0.9em 1.1em;
+  overflow-x: auto;
+  border: 1px solid var(--ks-border);
+  border-radius: var(--ks-radius);
+  background: #f7f8fa;
+  font-size: 0.86em;
+  line-height: 1.65;
+  white-space: pre;
+}
+.ks-doc pre.ks-code code { padding: 0; background: none; font-size: 1em; }
+.ks-doc pre.ks-code[data-lang]::after {
+  content: attr(data-lang);
+  position: absolute;
+  top: 0.5em;
+  right: 0.8em;
+  font-family: var(--ks-font-body);
+  font-size: 0.72em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ks-muted);
+}
+/* シンタックスハイライト（白地用に濃いめの色） */
+.ks-doc .ks-code .hljs-comment, .ks-doc .ks-code .hljs-quote, .ks-doc .ks-code .hljs-meta { color: #8a919c; font-style: italic; }
+.ks-doc .ks-code :is(.hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-built_in, .hljs-tag) { color: var(--doc-ink); }
+.ks-doc .ks-code :is(.hljs-string, .hljs-attr, .hljs-symbol, .hljs-addition, .hljs-regexp) { color: var(--doc-ink2); }
+.ks-doc .ks-code :is(.hljs-number, .hljs-title, .hljs-section, .hljs-type, .hljs-selector-class, .hljs-selector-id) { color: color-mix(in srgb, var(--doc-ink) 55%, var(--doc-ink2)); }
+.ks-doc .ks-code :is(.hljs-variable, .hljs-template-variable, .hljs-name, .hljs-attribute) { color: #3b4250; }
+
+.ks-doc table { width: 100%; margin: 0 0 1em; border-collapse: collapse; font-size: 0.94em; line-height: 1.6; }
+.ks-doc th { padding: 0.5em 0.8em; text-align: left; font-weight: 700; border-bottom: 2px solid var(--ks-accent); }
+.ks-doc td { padding: 0.5em 0.8em; border-bottom: 1px solid var(--ks-border); }
+.ks-doc tbody tr:nth-child(even) td { background: #fafbfc; }
+
+/* 画像。{width=…} の割合は本文の幅に対して効く（スライドでは本文の幅、資料では紙面の幅） */
+.ks-doc img { max-width: 100%; height: auto; border-radius: 6px; vertical-align: middle; }
+.ks-doc .ks-figure { margin: 0 0 1em; display: flex; flex-direction: column; align-items: center; gap: 0.4em; }
+.ks-doc .ks-figure img { max-height: 380px; object-fit: contain; }
+.ks-doc .ks-figure.ks-sized img { max-height: none; }
+.ks-doc .ks-figure-row { flex-direction: row; align-items: flex-start; }
+.ks-doc .ks-figure-row img { flex: 1 1 0; min-width: 0; }
+.ks-doc .ks-figure figcaption { font-size: 0.85em; color: var(--ks-muted); }
+.ks-doc img.shadow { box-shadow: 0 14px 34px -14px rgba(0, 0, 0, 0.35); }
+.ks-doc img.plain { border-radius: 0; }
+.ks-doc img.round { border-radius: 999px; }
+
+.ks-doc .ks-mermaid { margin: 0 0 1em; display: flex; justify-content: center; }
+.ks-doc .ks-mermaid-src { display: none; }
+.ks-doc .ks-mermaid-out { display: flex; justify-content: center; max-width: 100%; }
+.ks-doc .ks-mermaid-out svg { max-width: 100%; height: auto; }
+.ks-doc .ks-mermaid-error { width: 100%; margin: 0; padding: 0.8em; border: 1px dashed var(--ks-accent); border-radius: 8px; font: 12px/1.5 var(--ks-font-mono); white-space: pre-wrap; color: var(--ks-muted); }
+
+/* ---- 構成 ---- */
+.ks-doc-section { margin: 0 0 2.2em; }
+.ks-doc-section > :last-child { margin-bottom: 0; }
+.ks-doc-cover { margin-bottom: 2.6em; padding-bottom: 1.4em; border-bottom: 1px solid var(--ks-border); }
+.ks-doc-cover h1::after {
+  content: '';
+  display: block;
+  width: 2.2em;
+  height: 0.12em;
+  margin-top: 0.35em;
+  border-radius: 1em;
+  background: linear-gradient(90deg, var(--ks-accent), var(--ks-accent2));
+}
+.ks-doc-cover h1 + p { font-size: 1.15em; color: var(--ks-muted); }
+.ks-doc-meta { display: flex; gap: 0.6em; color: var(--ks-muted); font-size: 0.92em; }
+
+.ks-doc-note {
+  margin: 0.4em 0 0;
+  padding: 0.7em 1em;
+  border-radius: var(--ks-radius);
+  background: #fbf7e9;
+  border: 1px solid #efe4bd;
+  font-size: 0.93em;
+}
+.ks-doc-note > :last-child { margin-bottom: 0; }
+.ks-doc-note-label { font-size: 0.78em; font-weight: 700; letter-spacing: 0.12em; color: #a07d1c; }
+
+/* カラム（スライドの ||| ）は横に並べる。囲みの設定（data-col-style）はスライドと同じ */
+.ks-doc-cols {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 1.2em;
+  margin: 0 0 1em;
+}
+.ks-doc-col { min-width: 0; }
+.ks-doc-col > :last-child { margin-bottom: 0; }
+.ks-doc-col:nth-child(4n + 1) { --ks-col-c: var(--ks-col-1, var(--ks-accent)); --ks-on-c: var(--ks-on-col-1, #fff); }
+.ks-doc-col:nth-child(4n + 2) { --ks-col-c: var(--ks-col-2, var(--ks-accent2)); --ks-on-c: var(--ks-on-col-2, #fff); }
+.ks-doc-col:nth-child(4n + 3) { --ks-col-c: var(--ks-col-3, var(--ks-accent)); --ks-on-c: var(--ks-on-col-3, #fff); }
+.ks-doc-col:nth-child(4n + 4) { --ks-col-c: var(--ks-col-4, var(--ks-accent2)); --ks-on-c: var(--ks-on-col-4, #fff); }
+.ks-doc-cols:not([data-col-style='none']) .ks-doc-col { padding: 0.9em 1.1em; border-radius: min(var(--ks-box-radius, 20px), 24px); }
+.ks-doc-cols[data-col-style='outline'] .ks-doc-col { border: 2px solid var(--ks-col-c); }
+.ks-doc-cols[data-col-style='fill'] .ks-doc-col { background: var(--ks-col-c); color: var(--ks-on-c); }
+.ks-doc-cols[data-col-style='fill'] .ks-doc-col :is(h3, h4, strong, em, a) { color: inherit; background: none; }
+.ks-doc-cols:is([data-col-style='outline'], [data-col-style='card']) .ks-doc-col > :is(h3, h4) { color: color-mix(in srgb, var(--ks-col-c) 75%, #111); }
+.ks-doc-cols[data-col-style='card'] .ks-doc-col { background: #fff; box-shadow: inset 0 4px 0 var(--ks-col-c), 0 0 0 1px var(--ks-border), 0 10px 24px -18px rgba(0, 0, 0, 0.4); }
+.ks-doc-cols[data-col-align='center'] .ks-doc-col { text-align: center; }
+.ks-doc-cols[data-col-align='center'] .ks-doc-col :is(ul, ol, pre, table) { text-align: left; }
+
+/* ==========================================================================
+   書き出した資料ページ（html.ks-doc-page）
+   ========================================================================== */
+html.ks-doc-page { background: #eceef2; }
+html.ks-doc-page body { margin: 0; padding: 40px 16px 80px; }
+html.ks-doc-page .ks-doc {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 64px 72px;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 24px 60px -30px rgba(20, 30, 60, 0.35);
+}
+@media (max-width: 720px) {
+  html.ks-doc-page body { padding: 0; }
+  html.ks-doc-page .ks-doc { padding: 28px 18px; border-radius: 0; }
+}
+@media print {
+  html.ks-doc-page { background: none; }
+  html.ks-doc-page body { padding: 0; }
+  html.ks-doc-page .ks-doc { max-width: none; padding: 0; box-shadow: none; border-radius: 0; font-size: 10.5pt; }
+  .ks-doc :is(h1, h2, h3) { break-after: avoid; }
+  .ks-doc :is(pre, table, figure, .ks-mermaid, .ks-doc-cols, blockquote, .ks-doc-note) { break-inside: avoid; }
+  .ks-doc, .ks-doc * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

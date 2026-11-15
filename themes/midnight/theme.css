@@ -1,0 +1,18 @@
+/* Midnight — トークン（theme.json）で表現できない装飾だけをここに書く */
+
+/* 通常スライドの右上に、ごく薄い光を置く */
+.ks-deck .ks-slide:not(.ks-layout-title):not(.ks-layout-section) > .ks-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(620px 320px at 100% 0%, color-mix(in srgb, var(--ks-accent) 11%, transparent), transparent 70%);
+}
+
+.ks-deck .ks-layout-title h1 {
+  letter-spacing: -0.01em;
+}
+
+/* コードと引用をガラス風のパネルに */
+.ks-deck .ks-slide pre.ks-code {
+  box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}

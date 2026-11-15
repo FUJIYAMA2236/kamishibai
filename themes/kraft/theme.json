@@ -1,0 +1,24 @@
+{
+  "animation": {
+    "duration": 600,
+    "entrance": "fade",
+    "transition": "fade"
+  },
+  "category": "simple",
+  "description": "クラフト紙の色に、テラコッタの差し色。温かみのある資料に。",
+  "name": "Kraft",
+  "order": 5,
+  "tokens": {
+    "accent": "#b4572d",
+    "accent2": "#c99a54",
+    "bg": "#efe7da",
+    "fontBody": "\"BIZ UDPGothic\", \"Hiragino Sans\", \"Yu Gothic UI\", \"Meiryo\", \"Noto Sans JP\", sans-serif",
+    "fontHeading": "\"BIZ UDPGothic\", \"Hiragino Sans\", \"Yu Gothic UI\", \"Meiryo\", \"Noto Sans JP\", sans-serif",
+    "headingStyle": "plain",
+    "headingWeight": 800,
+    "muted": "#8a7865",
+    "radius": 6,
+    "surface": "#e4d9c6",
+    "text": "#3a2e25"
+  }
+}

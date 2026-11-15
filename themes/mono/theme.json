@@ -1,0 +1,31 @@
+{
+  "animation": {
+    "duration": 550,
+    "entrance": "slide",
+    "stagger": 50,
+    "transition": "slide"
+  },
+  "category": "simple",
+  "description": "白地に黒と赤。太い見出しのスイス風。",
+  "name": "Mono",
+  "order": 6,
+  "tokens": {
+    "accent": "#e11d48",
+    "accent2": "#f97316",
+    "bg": "#ffffff",
+    "bgSection": "#0a0a0a",
+    "bulletStyle": "square",
+    "fontBody": "\"Helvetica Neue\", \"Arial\", \"Hiragino Sans\", \"BIZ UDPGothic\", \"Yu Gothic UI\", \"Meiryo\", sans-serif",
+    "fontHeading": "\"Helvetica Neue\", \"Arial\", \"Hiragino Sans\", \"BIZ UDPGothic\", \"Yu Gothic UI\", \"Meiryo\", sans-serif",
+    "headingScale": 1.7,
+    "headingStyle": "bar",
+    "headingWeight": 800,
+    "letterSpacing": -0.01,
+    "muted": "#71717a",
+    "padding": 80,
+    "radius": 0,
+    "surface": "#f4f4f5",
+    "text": "#0a0a0a",
+    "titleScale": 3.2
+  }
+}

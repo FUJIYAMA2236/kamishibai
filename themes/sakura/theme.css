@@ -1,0 +1,22 @@
+/* Sakura — やわらかい角丸と淡い影 */
+
+.ks-deck .ks-slide pre.ks-code,
+.ks-deck .ks-slide:not(.ks-layout-quote) blockquote {
+  border: 0;
+  border-radius: var(--ks-radius);
+  background: #fff;
+  box-shadow: 0 16px 40px -22px color-mix(in srgb, var(--ks-accent) 55%, transparent);
+}
+.ks-deck .ks-slide:not(.ks-layout-quote) blockquote {
+  padding: 0.9em 1.2em;
+}
+.ks-deck .ks-slide li::marker {
+  color: var(--ks-accent2);
+}
+.ks-deck .ks-slide strong {
+  color: var(--ks-accent);
+}
+.ks-deck .ks-figure img,
+.ks-deck .ks-slide[data-fit='contain'] .ks-media img {
+  border-radius: var(--ks-radius);
+}

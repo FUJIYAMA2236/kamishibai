@@ -1,0 +1,38 @@
+/* Mono — 白・黒・赤だけで組むスイス風 */
+
+/* タイトル: 上端に太い黒帯、左下に揃える */
+.ks-deck .ks-layout-title > .ks-bg::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 18px;
+  background: var(--ks-text);
+}
+.ks-deck .ks-layout-title[data-valign='center'][data-align='left'] .ks-body {
+  justify-content: flex-end;
+}
+.ks-deck .ks-layout-title h1 {
+  line-height: 1.05;
+}
+.ks-deck .ks-layout-title h1::after {
+  content: '';
+  display: block;
+  width: 1.1em;
+  height: 0.14em;
+  margin-top: 0.3em;
+  background: var(--ks-accent);
+}
+
+/* セクション: 黒地に白抜き（背景色は theme.json の bgSection） */
+.ks-deck .ks-layout-section {
+  --ks-text: #fafafa;
+  --ks-muted: #a1a1aa;
+}
+
+.ks-deck .ks-slide strong { color: var(--ks-accent); }
+.ks-deck .ks-slide pre.ks-code { border-width: 2px; border-color: var(--ks-text); }
+.ks-deck .ks-slide th { color: var(--ks-text); border-bottom: 3px solid var(--ks-text); text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.85em; }
+.ks-deck .ks-slide tbody tr:nth-child(even) td { background: none; }
+.ks-deck .ks-progress { height: 6px; background: var(--ks-accent); }

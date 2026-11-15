@@ -1,0 +1,27 @@
+/* Paper — 紙面のような静かな装飾 */
+
+/* タイトルスライド: 上下に細い罫線 */
+.ks-deck .ks-layout-title .ks-inner::before,
+.ks-deck .ks-layout-title .ks-inner::after {
+  content: '';
+  position: absolute;
+  left: var(--ks-px);
+  right: var(--ks-px);
+  height: 1px;
+  background: var(--ks-text);
+  opacity: 0.55;
+}
+.ks-deck .ks-layout-title .ks-inner::before { top: calc(var(--ks-padding) * 0.8); height: 3px; }
+.ks-deck .ks-layout-title .ks-inner::after { bottom: calc(var(--ks-padding) * 0.8); }
+
+.ks-deck .ks-slide strong {
+  color: inherit;
+  background: linear-gradient(transparent 62%, color-mix(in srgb, var(--ks-accent) 26%, transparent) 62%);
+}
+.ks-deck .ks-slide blockquote {
+  font-family: var(--ks-font-heading);
+}
+.ks-deck .ks-slide th {
+  color: var(--ks-text);
+  border-bottom-color: var(--ks-text);
+}

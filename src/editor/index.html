@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kamishibai</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='7' y='5' width='21' height='15' rx='3' fill='%235eead4'/%3E%3Crect x='4' y='11' width='21' height='15' rx='3' fill='%237c8cff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/runtime/runtime.css">
+<link rel="stylesheet" href="/editor/editor.css">
+<style id="themeCss"></style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="5" width="21" height="15" rx="3.5" fill="var(--accent-2)"/><rect x="4" y="11" width="21" height="15" rx="3.5" fill="var(--accent)"/></svg>
+    <span>Kamishibai</span>
+  </div>
+
+  <div class="menu-anchor">
+    <button class="project-btn" id="projectBtn" title="ファイル（開く・保存・新規作成）" aria-haspopup="menu">
+      <span class="project-name" id="projectName">Kamishibai</span>
+      <span class="project-kind" id="projectKind"></span>
+      <svg class="caret" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg>
+    </button>
+    <div class="menu" id="fileMenu" role="menu" hidden>
+      <div class="menu-path" id="projectPath"></div>
+      <button type="button" role="menuitem" data-file="newFolder"><svg viewBox="0 0 24 24"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><path d="M12 11v5M9.5 13.5h5"/></svg><span><b>新規作成（フォルダ）…</b><small>git で管理しやすい形。中に slides.md と assets/</small></span></button>
+      <button type="button" role="menuitem" data-file="newKami"><svg viewBox="0 0 24 24"><path d="M6 3.5h8l4 4v13H6z"/><path d="M12 11v5M9.5 13.5h5"/></svg><span><b>新規作成（1 ファイル .kami）…</b><small>画像も含めて 1 ファイル。持ち運び・共有向き</small></span></button>
+      <div class="menu-sep"></div>
+      <button type="button" role="menuitem" data-file="openFolder"><svg viewBox="0 0 24 24"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg><span><b>フォルダを開く…</b></span></button>
+      <button type="button" role="menuitem" data-file="openFile"><svg viewBox="0 0 24 24"><path d="M6 3.5h8l4 4v13H6z"/><path d="M14 3.5v4h4"/></svg><span><b>ファイル（.kami）を開く…</b></span></button>
+      <div class="menu-sep"></div>
+      <button type="button" role="menuitem" data-file="saveAsKami"><svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg><span><b>1 ファイル（.kami）として保存…</b></span></button>
+      <button type="button" role="menuitem" data-file="saveAsFolder"><svg viewBox="0 0 24 24"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><path d="M9 13.5l2 2 4-4"/></svg><span><b>フォルダとして保存…</b></span></button>
+      <button type="button" role="menuitem" data-file="reveal"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg><span><b>保存場所を表示</b></span></button>
+      <div class="menu-sep"></div>
+      <button type="button" role="menuitem" data-file="close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg><span><b>閉じる</b><small>スタート画面に戻る</small></span></button>
+    </div>
+  </div>
+
+  <span class="status" id="status" data-state="saved"><i></i><span>保存済み</span></span>
+  <span class="spacer"></span>
+
+  <button class="btn ghost icon" id="btnSwap" title="プレビューと編集パネルの左右を入れ替える" aria-label="左右を入れ替える">
+    <svg viewBox="0 0 24 24"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg>
+  </button>
+  <button class="btn ghost icon" id="btnScheme" title="エディタの明暗を切り替える" aria-label="明暗切り替え">
+    <svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+  </button>
+  <button class="btn ghost icon" id="btnSettings" title="設定（文字の大きさ・配色など） Ctrl+," aria-label="設定">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+  </button>
+  <div class="menu-anchor">
+    <button class="btn" id="btnExportMenu" title="HTML / PDF に書き出す" aria-haspopup="menu">
+      <svg viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19h14"/></svg>書き出し
+      <svg class="caret" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg>
+    </button>
+    <div class="menu" id="exportMenu" role="menu" hidden>
+      <div class="menu-label">スライド（発表用）</div>
+      <button type="button" role="menuitem" data-export="slides-html">
+        <svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="12" rx="2"/><path d="M9 20h6"/></svg>
+        <span><b>HTML</b><small>そのまま持ち出して発表できる</small></span>
+      </button>
+      <button type="button" role="menuitem" data-export="slides-pdf">
+        <svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5"/></svg>
+        <span><b>PDF</b><small>1 スライド = 1 ページ</small></span>
+      </button>
+      <button type="button" role="menuitem" data-export="slides-pptx">
+        <svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9 15.5v-7h3.2a2.2 2.2 0 0 1 0 4.4H9"/></svg>
+        <span><b>PowerPoint（.pptx）</b><small>文字・図形をそのまま編集できる</small></span>
+      </button>
+      <button type="button" role="menuitem" data-export="slides-odp">
+        <svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="12" cy="12" r="3.5"/></svg>
+        <span><b>OpenDocument（.odp）</b><small>LibreOffice Impress などで編集できる</small></span>
+      </button>
+      <div class="menu-sep"></div>
+      <div class="menu-label">資料（配布・読み物用）</div>
+      <button type="button" role="menuitem" data-doc-preview>
+        <svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg>
+        <span><b>プレビュー</b><small>別ウィンドウで資料の見た目を確認</small></span>
+      </button>
+      <button type="button" role="menuitem" data-export="doc-html">
+        <svg viewBox="0 0 24 24"><path d="M6 3.5h8l4 4v13H6z"/><path d="M9 11h6M9 14.5h6M9 18h4"/></svg>
+        <span><b>HTML</b><small>スライドを 1 本の文書にまとめる</small></span>
+      </button>
+      <button type="button" role="menuitem" data-export="doc-pdf">
+        <svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5"/></svg>
+        <span><b>PDF</b><small>A4 縦の配布資料</small></span>
+      </button>
+      <button type="button" role="menuitem" data-export="doc-docx">
+        <svg viewBox="0 0 24 24"><path d="M6 3.5h8l4 4v13H6z"/><path d="M8.5 11l1.3 6 1.7-4.5 1.7 4.5 1.3-6"/></svg>
+        <span><b>Word（.docx）</b><small>原稿を文書として編集できる形に</small></span>
+      </button>
+      <button type="button" role="menuitem" data-export="doc-odt">
+        <svg viewBox="0 0 24 24"><path d="M6 3.5h8l4 4v13H6z"/><circle cx="12" cy="14" r="3"/></svg>
+        <span><b>OpenDocument（.odt）</b><small>LibreOffice Writer などで編集できる</small></span>
+      </button>
+      <div class="menu-sep"></div>
+      <label class="menu-check"><input type="checkbox" id="embedImages" checked> HTML に画像を埋め込む（1 ファイルにまとめる）</label>
+      <label class="menu-check"><input type="checkbox" id="docNotes"> 資料に発表者ノートも載せる</label>
+    </div>
+  </div>
+  <button class="btn primary" id="btnPresent" title="スライドショーを開始 (Ctrl+Enter)">
+    <svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>発表する
+  </button>
+</header>
+
+<main class="panes" id="panes">
+  <!-- プレビュー -->
+  <section class="pane pane-preview">
+    <div class="stage-host" id="stageHost">
+      <div class="ks-deck" id="mainDeck"><div class="ks-stage" id="mainStage"></div></div>
+    </div>
+    <div class="preview-bar">
+      <button class="btn ghost icon" id="btnPrev" title="前のスライド"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <span class="count" id="count">– / –</span>
+      <button class="btn ghost icon" id="btnNext" title="次のスライド"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+      <button class="btn ghost" id="btnReplay" title="このスライドのアニメーションを再生"><svg viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 1 0 2.4-5.5M4.5 4.5v4h4"/></svg>アニメーションを再生</button>
+      <span class="spacer"></span>
+      <span class="chip" id="layoutChip" title="このスライドのレイアウト"></span>
+    </div>
+    <div class="notes-view" id="notesView"><span class="label">ノート</span><div id="notesBody"></div></div>
+    <div class="film" id="film" aria-label="スライド一覧"></div>
+  </section>
+
+  <div class="splitter" id="splitter" title="ドラッグで幅を変更"></div>
+
+  <!-- 編集パネル: 原稿 / デザイン をタブで切り替える -->
+  <aside class="pane pane-side">
+    <div class="side-tabs" id="sideTabs" role="tablist">
+      <button type="button" data-side="write" class="is-active">
+        <svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3z"/><path d="M13.5 7.5l3 3"/></svg>原稿
+      </button>
+      <button type="button" data-side="design">
+        <svg viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r="1.6"/><circle cx="17.5" cy="10.5" r="1.6"/><circle cx="8.5" cy="7.5" r="1.6"/><circle cx="6.5" cy="12.5" r="1.6"/><path d="M12 21a9 9 0 1 1 9-9c0 2.5-2 3-3.5 3H15a2 2 0 0 0-1.5 3.3c.5.6.3 2.7-1.5 2.7z"/></svg>デザイン
+      </button>
+    </div>
+
+    <section class="side-page" id="pageWrite">
+      <div class="toolbar" id="toolbar">
+        <button data-insert="slide" title="新しいスライドを今のスライドの後ろに追加"><svg viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="M12 9.5v5M9.5 12h5"/></svg><span>スライド</span></button>
+        <button data-insert="image" title="画像を挿入（ドラッグ＆ドロップや貼り付けでも可）"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4.5 17l5-4.5 3.5 3 2.5-2 4 3.5"/></svg><span>画像</span></button>
+        <button data-insert="diagram" title="図形を描く（工程図・ブロック図など。図形エディタが開きます）"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="7" height="5" rx="1.5"/><path d="M13.5 15.5l3.5-4 3.5 4z"/><circle cx="7" cy="17" r="3"/><path d="M10.5 6.5h4.5a2 2 0 0 1 2 2v2"/></svg><span>図形</span></button>
+        <button data-insert="mermaid" title="図（mermaid 記法）"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="7" height="5" rx="1.5"/><rect x="13.5" y="15" width="7" height="5" rx="1.5"/><path d="M7 9v5.5a3 3 0 0 0 3 3h3.5"/></svg><span>図</span></button>
+        <button data-insert="columns" title="カラム（::: columns 〜 ::: の範囲を ||| で左右に分ける）"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M12 5v14"/></svg><span>カラム</span></button>
+        <button data-insert="table" title="表"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M3.5 10h17M3.5 14.5h17M9.5 5v14"/></svg><span>表</span></button>
+        <button data-insert="code" title="コードブロック"><svg viewBox="0 0 24 24"><path d="M8.5 7.5L4 12l4.5 4.5M15.5 7.5L20 12l-4.5 4.5"/></svg><span>コード</span></button>
+        <button data-insert="notes" title="発表者ノート（??? 以降）"><svg viewBox="0 0 24 24"><path d="M5 5.5h14v10H10l-5 3.5z"/></svg><span>ノート</span></button>
+        <span class="spacer"></span>
+        <div class="mode-seg" id="modeSeg" role="tablist" aria-label="表示の切り替え">
+          <button type="button" data-mode="live" title="書きながら見た目に反映（カーソルのある行だけ記号を表示）">ライブ</button>
+          <button type="button" data-mode="source" title="Markdown の記号をすべて表示">ソース</button>
+        </div>
+      </div>
+      <!-- 書式ボタン（Markdown を書けなくても使えるように）。選択した文字・行に効く -->
+      <div class="format-bar" id="formatBar">
+        <select id="fmtBlock" title="段落の種類（見出し / 本文）">
+          <option value="">段落…</option>
+          <option value="h1">大見出し（表紙）</option>
+          <option value="h2">見出し</option>
+          <option value="h3">小見出し</option>
+          <option value="p">本文</option>
+        </select>
+        <span class="sep"></span>
+        <button data-fmt="bold" title="太字 (Ctrl+B)"><b>B</b></button>
+        <button data-fmt="italic" title="強調 (Ctrl+I)"><i>I</i></button>
+        <button data-fmt="strike" title="取り消し線"><s>S</s></button>
+        <button data-fmt="mark" title="マーカー"><svg viewBox="0 0 24 24"><path d="M14.5 4.5l5 5-8 8H6.5v-5z"/><path d="M4 20.5h16"/></svg></button>
+        <button data-fmt="code" title="コード（等幅）"><svg viewBox="0 0 24 24"><path d="M8.5 7.5L4 12l4.5 4.5M15.5 7.5L20 12l-4.5 4.5"/></svg></button>
+        <button data-fmt="link" title="リンク"><svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg></button>
+        <span class="sep"></span>
+        <button data-fmt="ul" title="箇条書き"><svg viewBox="0 0 24 24"><circle cx="5" cy="7" r="1.2"/><circle cx="5" cy="12" r="1.2"/><circle cx="5" cy="17" r="1.2"/><path d="M9.5 7H20M9.5 12H20M9.5 17H20"/></svg></button>
+        <button data-fmt="ol" title="番号付きリスト"><svg viewBox="0 0 24 24"><path d="M4 5.5h1.5V9M4 9h3M4 14.5c0-.8.7-1.3 1.5-1.3s1.5.5 1.5 1.2c0 1.1-3 1.8-3 3.1h3"/><path d="M10.5 7H20M10.5 12H20M10.5 17H20"/></svg></button>
+        <button data-fmt="quote" title="引用"><svg viewBox="0 0 24 24"><path d="M5 6.5v11M9.5 8H19M9.5 12H19M9.5 16H16"/></svg></button>
+        <span class="spacer"></span>
+        <button data-fmt="undo" title="元に戻す (Ctrl+Z)"><svg viewBox="0 0 24 24"><path d="M9 14L4.5 9.5 9 5"/><path d="M4.5 9.5h10a5 5 0 0 1 0 10H11"/></svg></button>
+        <button data-fmt="redo" title="やり直し (Ctrl+Y)"><svg viewBox="0 0 24 24"><path d="M15 14l4.5-4.5L15 5"/><path d="M19.5 9.5h-10a5 5 0 0 0 0 10H13"/></svg></button>
+      </div>
+      <div class="editor-host" id="editorHost"></div>
+      <input type="file" id="filePicker" accept="image/*" multiple hidden>
+    </section>
+
+    <section class="side-page" id="pageDesign" hidden>
+      <div class="tabs" id="tabs" role="tablist">
+        <button data-tab="deck" class="is-active">全体</button>
+        <button data-tab="slide">このスライド</button>
+        <button data-tab="theme">テーマ</button>
+      </div>
+      <div class="panel" id="panel"></div>
+    </section>
+  </aside>
+</main>
+
+
+<dialog id="dlgInfo" class="dialog">
+  <div id="infoBody"></div>
+  <div class="dialog-actions"><button class="btn primary" type="button" data-close>閉じる</button></div>
+</dialog>
+
+<!-- スタート画面（何も開いていないとき） -->
+<section class="start" id="startScreen" hidden>
+  <div class="start-card">
+    <div class="start-brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="5" width="21" height="15" rx="3.5" fill="var(--accent-2)"/><rect x="4" y="11" width="21" height="15" rx="3.5" fill="var(--accent)"/></svg>
+      <div><h1>Kamishibai</h1><p>Markdown で書いて、GUI で整えるスライド</p></div>
+    </div>
+    <div class="start-actions" id="startActions"></div>
+    <div class="start-path" id="startPath" hidden>
+      <p class="hint">プロジェクトのフォルダか .kami ファイルのパスを入力してください（ブラウザ版）。</p>
+      <div class="start-path-row"><input type="text" id="pathInput" placeholder="例: C:\Users\me\Documents\発表資料" spellcheck="false"><button class="btn primary" type="button" id="btnOpenPath">開く</button><button class="btn" type="button" id="btnNewPath">ここに新規作成</button></div>
+    </div>
+    <div class="start-recent" id="startRecent"></div>
+  </div>
+</section>
+
+<div class="toasts" id="toasts"></div>
+
+<script src="/core/schema.js"></script>
+<script src="/core/parse.js"></script>
+<script src="/core/render.js"></script>
+<script src="/core/diagram.js"></script>
+<script src="/core/zip.js"></script>
+<script src="/core/office-common.js"></script>
+<script src="/core/docmodel.js"></script>
+<script src="/core/docx.js"></script>
+<script src="/core/odt.js"></script>
+<script src="/core/pptx.js"></script>
+<script src="/core/odp.js"></script>
+<script src="/vendor/markdown-it.min.js"></script>
+<script src="/vendor/highlight.min.js"></script>
+<script src="/vendor/codemirror.min.js"></script>
+<script src="/runtime/runtime.js"></script>
+<!-- デスクトップアプリ（Tauri）のときだけ、裏側の処理をこの画面の中で動かす（ブラウザ版では何もしない） -->
+<script src="/app/pathx.js"></script>
+<script src="/app/backend.js"></script>
+<script src="/app/tauri-host.js"></script>
+<script src="/editor/editor.js"></script>
+<script src="/editor/settings.js"></script>
+<script src="/editor/editor-canvas.js"></script>
+<script src="/editor/editor-live.js"></script>
+<script src="/editor/diagram-editor.js"></script>
+<script src="/editor/export-scene.js"></script>
+<script src="/editor/export-office.js"></script>
+<script>
+  KSE.start().catch(function (e) {
+    console.error(e);
+    KSE.toast('起動に失敗しました: ' + e.message, true);
+  });
+</script>
+<script src="/vendor/mermaid.min.js" async onload="window.dispatchEvent(new Event('ks-mermaid-ready'))"></script>
+</body>
+</html>

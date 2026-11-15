@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1200" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b1f4b"/>
+      <stop offset="0.45" stop-color="#4b3f8f"/>
+      <stop offset="0.75" stop-color="#e58aa0"/>
+      <stop offset="1" stop-color="#ffd3a1"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fff6d8"/>
+      <stop offset="0.35" stop-color="#ffd9a0" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#ffb37a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="h1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6d5bb5"/>
+      <stop offset="1" stop-color="#3a2f78"/>
+    </linearGradient>
+    <linearGradient id="h2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b3a86"/>
+      <stop offset="1" stop-color="#1d1f55"/>
+    </linearGradient>
+    <linearGradient id="h3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1c2452"/>
+      <stop offset="1" stop-color="#0b1020"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="1200" fill="url(#sky)"/>
+  <g fill="#fff">
+    <circle cx="180" cy="120" r="2.2" opacity="0.8"/>
+    <circle cx="420" cy="70" r="1.6" opacity="0.6"/>
+    <circle cx="640" cy="190" r="2" opacity="0.7"/>
+    <circle cx="910" cy="90" r="1.5" opacity="0.6"/>
+    <circle cx="1180" cy="160" r="2.4" opacity="0.8"/>
+    <circle cx="1420" cy="80" r="1.8" opacity="0.7"/>
+    <circle cx="1320" cy="300" r="1.4" opacity="0.5"/>
+    <circle cx="300" cy="320" r="1.5" opacity="0.5"/>
+  </g>
+  <circle cx="1040" cy="760" r="330" fill="url(#sun)"/>
+  <circle cx="1040" cy="760" r="92" fill="#fff3d0"/>
+  <path d="M0 800 C 220 690, 420 720, 640 790 S 1060 870, 1280 770 S 1520 720, 1600 760 V1200 H0Z" fill="url(#h1)" opacity="0.92"/>
+  <path d="M0 900 C 260 800, 520 880, 780 930 S 1240 880, 1600 860 V1200 H0Z" fill="url(#h2)"/>
+  <path d="M0 1010 C 300 940, 560 1040, 860 1030 S 1340 960, 1600 1010 V1200 H0Z" fill="url(#h3)"/>
+</svg>

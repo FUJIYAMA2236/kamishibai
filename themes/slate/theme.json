@@ -1,0 +1,24 @@
+{
+  "animation": {
+    "duration": 500,
+    "entrance": "fade",
+    "transition": "fade"
+  },
+  "category": "simple",
+  "description": "明るいグレーの単色。色を使わず、内容だけを見せたいときに。",
+  "name": "Slate",
+  "order": 3,
+  "tokens": {
+    "accent": "#3d4b63",
+    "accent2": "#8a94a8",
+    "bg": "#f2f3f5",
+    "bulletStyle": "square",
+    "fontBody": "\"BIZ UDPGothic\", \"Hiragino Sans\", \"Yu Gothic UI\", \"Meiryo\", \"Noto Sans JP\", sans-serif",
+    "fontHeading": "\"BIZ UDPGothic\", \"Hiragino Sans\", \"Yu Gothic UI\", \"Meiryo\", \"Noto Sans JP\", sans-serif",
+    "headingStyle": "bar",
+    "muted": "#6c7486",
+    "radius": 8,
+    "surface": "#e5e7eb",
+    "text": "#1c2230"
+  }
+}

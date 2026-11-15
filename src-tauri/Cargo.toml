@@ -1,0 +1,30 @@
+[package]
+name = "kamishibai"
+version = "0.3.0"
+description = "Markdown で書いて GUI で整えるスライドツール"
+license = "MIT"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["protocol-asset"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-single-instance = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Windows: PDF 化に WebView2 の印刷機能を直接使う（版は tauri / wry が使うものに合わせる）
+[target.'cfg(windows)'.dependencies]
+webview2-com = "0.39.1"
+windows = { version = "0.62", features = ["Win32_Foundation"] }
+
+# 配布サイズを小さく（exe 1 本で 10MB 前後）
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

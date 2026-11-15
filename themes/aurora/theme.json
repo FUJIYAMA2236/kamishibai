@@ -1,0 +1,27 @@
+{
+  "animation": {
+    "duration": 750,
+    "entrance": "blur",
+    "transition": "zoom"
+  },
+  "category": "decorative",
+  "description": "紫とシアンが滲む、華やかなダークテーマ。",
+  "name": "Aurora",
+  "order": 11,
+  "tokens": {
+    "accent": "#c084fc",
+    "accent2": "#22d3ee",
+    "bg": "#0c0a1d",
+    "bgSection": "linear-gradient(120deg, color-mix(in srgb, var(--ks-accent) 34%, transparent), color-mix(in srgb, var(--ks-accent2) 22%, transparent)), var(--ks-bg)",
+    "bgSlide": "radial-gradient(1000px 520px at 108% -18%, color-mix(in srgb, var(--ks-accent) 20%, transparent), transparent 62%), radial-gradient(820px 520px at -10% 120%, color-mix(in srgb, var(--ks-accent2) 14%, transparent), transparent 62%), var(--ks-bg)",
+    "bgTitle": "radial-gradient(700px 480px at 18% 12%, color-mix(in srgb, var(--ks-accent) 46%, transparent), transparent 62%), radial-gradient(760px 520px at 86% 88%, color-mix(in srgb, var(--ks-accent2) 36%, transparent), transparent 62%), radial-gradient(520px 360px at 70% 12%, rgba(244, 114, 182, 0.28), transparent 62%), var(--ks-bg)",
+    "bulletStyle": "arrow",
+    "headingStyle": "plain",
+    "headingWeight": 800,
+    "muted": "#a59ec6",
+    "radius": 22,
+    "surface": "#191533",
+    "text": "#f2efff",
+    "titleAlign": "center"
+  }
+}

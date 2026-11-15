@@ -1,0 +1,22 @@
+{
+  "animation": {
+    "duration": 550,
+    "entrance": "fade",
+    "transition": "fade"
+  },
+  "category": "simple",
+  "description": "墨色の地に琥珀色をひとつだけ。暗い会場や動画向けの、装飾のないダーク。",
+  "name": "Ink",
+  "order": 7,
+  "tokens": {
+    "accent": "#f2b84b",
+    "accent2": "#f2b84b",
+    "bg": "#1e1f23",
+    "bulletStyle": "dash",
+    "headingStyle": "bar",
+    "muted": "#9a9ca3",
+    "radius": 10,
+    "surface": "#2a2c31",
+    "text": "#ececec"
+  }
+}

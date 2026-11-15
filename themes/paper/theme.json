@@ -1,0 +1,26 @@
+{
+  "animation": {
+    "duration": 700,
+    "entrance": "fade",
+    "transition": "fade"
+  },
+  "category": "simple",
+  "description": "生成りの紙に明朝の見出し。落ち着いた読み物調。",
+  "name": "Paper",
+  "order": 2,
+  "tokens": {
+    "accent": "#c2410c",
+    "accent2": "#0f766e",
+    "bg": "#f7f4ee",
+    "bulletStyle": "dash",
+    "fontHeading": "\"Yu Mincho\", \"YuMincho\", \"Hiragino Mincho ProN\", \"BIZ UDPMincho\", \"Noto Serif JP\", \"Times New Roman\", serif",
+    "headingStyle": "underline",
+    "headingWeight": 700,
+    "letterSpacing": 0.03,
+    "lineHeight": 1.7,
+    "muted": "#7d766a",
+    "radius": 4,
+    "surface": "#efeae0",
+    "text": "#1f1d1a"
+  }
+}

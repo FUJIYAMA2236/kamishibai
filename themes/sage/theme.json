@@ -1,0 +1,23 @@
+{
+  "animation": {
+    "duration": 600,
+    "entrance": "rise",
+    "transition": "fade"
+  },
+  "category": "simple",
+  "description": "生成りに深い緑。落ち着いていて目に優しい。",
+  "name": "Sage",
+  "order": 4,
+  "tokens": {
+    "accent": "#4a7c59",
+    "accent2": "#a3b18a",
+    "bg": "#f5f6f1",
+    "bulletStyle": "dash",
+    "headingStyle": "underline",
+    "lineHeight": 1.7,
+    "muted": "#75806f",
+    "radius": 12,
+    "surface": "#e8ebe1",
+    "text": "#24302a"
+  }
+}

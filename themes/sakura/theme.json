@@ -1,0 +1,28 @@
+{
+  "animation": {
+    "duration": 700,
+    "entrance": "zoom",
+    "transition": "fade"
+  },
+  "category": "decorative",
+  "description": "やわらかい桜色と丸ゴシック。親しみやすい雰囲気に。",
+  "name": "Sakura",
+  "order": 12,
+  "tokens": {
+    "accent": "#e0527f",
+    "accent2": "#f59e7a",
+    "bg": "#fff8f6",
+    "bgSection": "linear-gradient(135deg, color-mix(in srgb, var(--ks-accent) 16%, transparent), color-mix(in srgb, var(--ks-accent2) 16%, transparent)), var(--ks-bg)",
+    "bgTitle": "radial-gradient(640px 420px at 12% 0%, color-mix(in srgb, var(--ks-accent) 22%, transparent), transparent 62%), radial-gradient(700px 460px at 95% 100%, color-mix(in srgb, var(--ks-accent2) 26%, transparent), transparent 62%), var(--ks-bg)",
+    "bodyAlign": "center",
+    "fontBody": "\"Hiragino Maru Gothic ProN\", \"Zen Maru Gothic\", \"Kosugi Maru\", \"BIZ UDPGothic\", \"Meiryo UI\", \"Meiryo\", sans-serif",
+    "fontHeading": "\"Hiragino Maru Gothic ProN\", \"Zen Maru Gothic\", \"Kosugi Maru\", \"BIZ UDPGothic\", \"Meiryo UI\", \"Meiryo\", sans-serif",
+    "headingStyle": "underline",
+    "lineHeight": 1.7,
+    "muted": "#a3868e",
+    "radius": 24,
+    "surface": "#ffecee",
+    "text": "#40282f",
+    "titleAlign": "center"
+  }
+}

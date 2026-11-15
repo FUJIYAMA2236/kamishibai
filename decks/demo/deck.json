@@ -1,0 +1,46 @@
+{
+  "chrome": {
+    "footer": "{title}"
+  },
+  "slides": {
+    "answer": {
+      "layout": "image-full"
+    },
+    "design": {
+      "layout": "image-left"
+    },
+    "diagram": {
+      "layout": "content"
+    },
+    "diagram-editor": {
+      "layout": "content"
+    },
+    "export": {
+      "colStyle": "outline"
+    },
+    "files": {
+      "colStyle": "card"
+    },
+    "light": {
+      "colStyle": "fill"
+    },
+    "overview": {
+      "layout": "content"
+    },
+    "pain": {
+      "animation": {
+        "build": "items"
+      }
+    },
+    "presenter": {
+      "layout": "content"
+    },
+    "start": {
+      "layout": "title"
+    },
+    "three": {
+      "colStyle": "card"
+    }
+  },
+  "theme": "paper"
+}
