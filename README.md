@@ -123,14 +123,26 @@ Windows 10 / 11 に入っている WebView2 を使います（無い PC では�
 
 ## ソースから作る
 
-[Node.js](https://nodejs.org/) 18 以上が必要です。デスクトップアプリを作るには、さらに [Rust](https://www.rust-lang.org/) と [Tauri の前提ツール](https://tauri.app/start/prerequisites/) が必要です。
+アプリ本体は **Rust（[Tauri](https://tauri.app/)）** でビルドします。**Node.js** は、その準備（画面のファイルを集める・Tauri の CLI を動かす）とテストに使います。
+どちらもビルドする人だけに必要で、アプリを使う人には要りません。
+
+| 必要なもの | 何に使うか |
+| --- | --- |
+| [Rust](https://www.rust-lang.org/) と [Tauri の前提ツール](https://tauri.app/start/prerequisites/)（Windows なら Microsoft C++ Build Tools など） | アプリ本体（exe）のコンパイル |
+| [Node.js](https://nodejs.org/) 18 以上 | Tauri の CLI・画面のファイルの準備・テスト・ブラウザ版 |
 
 ```bash
-npm install        # 初回のみ（Tauri の CLI などの開発用ツール）
-npm run app        # デスクトップアプリとして起動（開発用）
-npm run dist       # 配布用を作る → src-tauri/target/release/ に exe、bundle/nsis/ にインストーラー
+npm install        # 初回のみ（Tauri の CLI などの開発用ツールを入れる）
+npm run app        # 開発用にアプリを起動（tauri dev）
+npm run dist       # 配布用を作る（tauri build）→ src-tauri/target/release/ に exe、bundle/nsis/ にインストーラー
 npm test           # テスト
 ```
+
+`npm run dist` の中では、次の順に動きます。
+
+1. `scripts/prepare-app.js`（Node.js）が、画面のファイル（HTML・JS・テーマ・サンプル）を `app-dist/` に集める
+2. Tauri の CLI が `cargo build --release` を呼び、Rust がアプリ本体をコンパイルする（`app-dist/` の中身は exe に埋め込まれる）
+3. Tauri の CLI がインストーラー（NSIS）を作る
 
 macOS / Linux 向けは、その OS で `npm run dist` を実行すると作れます（GitHub Actions の設定: [.github/workflows/build.yml](.github/workflows/build.yml)。PDF の書き出しは今のところ Windows のみ）。
 
