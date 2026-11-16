@@ -14,3 +14,6 @@ release/
 app-dist/
 src-tauri/target/
 src-tauri/gen/
+
+# 開発の引き継ぎメモ（手元だけで管理し、リポジトリには入れない）
+CLAUDE.md

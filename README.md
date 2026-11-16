@@ -158,7 +158,6 @@ node bin/kamishibai.js pack 発表資料/ 発表.kami      # フォルダを 1 �
 node bin/kamishibai.js help
 ```
 
-設計方針・ファイル構成・現在の状態は [CLAUDE.md](CLAUDE.md) にまとめています（開発の引き継ぎメモ）。
 `decks/demo/` がサンプルのプロジェクト（アプリの「サンプルを開く」の中身）、`themes/` が同梱のテーマです。
 
 ## ライセンス
