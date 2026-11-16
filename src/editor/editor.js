@@ -703,7 +703,7 @@
   }
 
   const openGroups = JSON.parse(localStorage.getItem('ks.groups') || '{}');
-  const OPEN_BY_DEFAULT = { theme: true, color: true, layout: true, columns: true, images: true, themeNew: true, themeEdit: true };
+  const OPEN_BY_DEFAULT = { theme: true, color: true, layout: true, columns: true, images: true, themeNew: true, themeEdit: true, themeShare: true };
   function group(id, title, children, badge) {
     const d = h('details', { class: 'group', open: id in openGroups ? !!openGroups[id] : !!OPEN_BY_DEFAULT[id] },
       h('summary', null, title, badge ? h('span', { class: 'badge' }, String(badge)) : null),
@@ -1008,6 +1008,53 @@
   function renderThemeTab(panel) {
     const theme = currentTheme();
     const overrides = Object.keys(state.design.tokens || {}).length + Object.keys(state.design.animation || {}).length;
+
+    // ---- 自作テーマの読み込み・書き出し ----
+    const bridgeApp = window.kamishibaiApp || null;
+    const askPath = (label, def) => { const v = prompt(label, def || ''); return v && v.trim(); };
+    async function importTheme(kind) {
+      const src = bridgeApp ? await bridgeApp.pickThemeSource(kind) : askPath('読み込むテーマのフォルダ・theme.json・zip のパス');
+      if (!src) return;
+      let r;
+      try {
+        r = await api('POST', '/api/themes/import', { path: src });
+      } catch (e) {
+        if (!/既にあります/.test(e.message)) { toast(e.message, true); return; }
+        if (!confirm(e.message + '\n上書きしますか？')) return;
+        try { r = await api('POST', '/api/themes/import', { path: src, overwrite: true }); } catch (e2) { toast(e2.message, true); return; }
+      }
+      state.themes = (await api('GET', '/api/state')).themes;
+      renderPanel();
+      const names = r.imported.map((t) => '「' + t.name + '」').join('');
+      if (r.warnings.length) {
+        showInfo('<h2>テーマを読み込みました</h2><p>' + render.esc(names) + ' を読み込みました。「全体」タブのテーマの一覧から選べます。</p>' +
+          '<p>次の点は確認してください（読み込みはできています）:</p><ul>' + r.warnings.map((w) => '<li>' + render.esc(w) + '</li>').join('') + '</ul>');
+      } else {
+        toast('テーマ ' + names + ' を読み込みました。「全体」タブのテーマの一覧から選べます');
+      }
+    }
+    async function exportTheme() {
+      const out = bridgeApp ? await bridgeApp.pickThemeExport(theme.id) : askPath('書き出す zip のパス', theme.id + '.zip');
+      if (!out) return;
+      try {
+        const r = await api('POST', '/api/themes/export', { id: theme.id, out });
+        toast('テーマ「' + theme.name + '」を書き出しました（' + r.file + '）');
+      } catch (e) { toast(e.message, true); }
+    }
+    panel.append(
+      group('themeShare', '自作テーマを読み込む・書き出す', [
+        h('p', { class: 'hint' }, 'テーマのフォルダ（theme.json と theme.css）や、それを zip にまとめたものを読み込むと、どのプロジェクトからも選べるようになります。書き方は docs/THEME_REFERENCE.md にあります。'),
+        h('div', { class: 'row-actions' },
+          h('button', { class: 'btn small', type: 'button', onclick: () => importTheme('folder') }, 'フォルダから読み込む…'),
+          h('button', { class: 'btn small', type: 'button', onclick: () => importTheme('file') }, 'theme.json / zip を読み込む…')),
+        h('div', { class: 'row-actions' },
+          h('button', { class: 'btn small', type: 'button', title: '使用中のテーマを zip にします。人に渡すと、上の「読み込む」でそのまま使えます', onclick: exportTheme }, '使用中のテーマを zip に書き出す…'),
+          h('button', {
+            class: 'btn small ghost', type: 'button', title: 'ここにテーマのフォルダを置いても読み込まれます',
+            onclick: () => api('POST', '/api/themes/reveal', {}).catch((e) => toast(e.message, true)),
+          }, 'テーマのフォルダを開く')),
+      ])
+    );
 
     const idInput = h('input', { type: 'text', placeholder: 'テーマID（半角英数字とハイフン）例: my-brand', spellcheck: false });
     const nameInput = h('input', { type: 'text', placeholder: '表示名　例: 自社ブランド' });

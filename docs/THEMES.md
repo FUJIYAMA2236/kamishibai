@@ -8,93 +8,66 @@ my-brand/
   theme.css    トークンで表現できない装飾（任意）
 ```
 
-テーマは次の 3 か所から探します（上が優先）。
+書ける項目のすべて（トークンの一覧・既定値・選べる値、theme.css で使えるクラス・属性・CSS 変数）は
+[THEME_REFERENCE.md](THEME_REFERENCE.md) にあります。
 
-| 場所 | 中身 |
-| --- | --- |
-| `<プロジェクト>/themes/<ID>/` | そのプロジェクトに同梱したテーマ（.kami に入っていたものもここ） |
-| ユーザーのテーマ（Windows: `%APPDATA%\Kamishibai\themes\<ID>/`） | GUI で作ったテーマ。どのプロジェクトからも使える |
-| ツール同梱 `themes/<ID>/` | Snow / Paper / Midnight など。直接は編集できない |
-
-1 ファイル（.kami）に保存すると、使っているテーマ（同梱以外）も一緒に入るので、別の PC でも同じ見た目で開けます。
-
-## いちばん簡単な方法（GUI）
+## 1. いちばん簡単な方法（GUI で作る）
 
 1. 「デザイン」→「全体」タブで、色・フォント・飾りを調整する
 2. 「デザイン」→「テーマ」タブ →「新しいテーマとして保存」に ID と名前を入れて「テーマを作成」
 3. ユーザーのテーマとして保存され、以後は他のプロジェクトからも選べる
 
-## theme.json
+飾りを足したいときは、同じ「テーマ」タブの「追加 CSS（theme.css）」に書いて「CSS を保存」します。
 
-```json
-{
-  "name": "自社ブランド",
-  "description": "一覧に出る説明",
-  "category": "simple",
-  "order": 20,
-  "aspect": "16:9",
-  "tokens": {
-    "bg": "#0b1020",
-    "text": "#e8ecf8",
-    "accent": "#7c9cff",
-    "headingStyle": "gradient"
-  },
-  "animation": { "transition": "fade", "entrance": "rise" },
-  "chrome": { "pageNumber": true, "progress": true }
-}
-```
+## 2. ファイルを書いて作る
 
-`category` はテーマ一覧での分類（`simple` = シンプル / `decorative` = 装飾あり）、`order` は並び順（小さいほど先）です。
-シンプルなテーマは、背景にグラデーションを使わず、`headingStyle` に `gradient` を使わないこと（テストで確認しています）。
-`accent2` を `accent` と同じ色にすると、見出しの下線や進捗バーも単色になります。
+1. 好きな場所に `my-brand/` フォルダを作り、`theme.json` を書く（最小はこれだけ）:
 
-書かなかった項目は既定値になります。使えるトークンの一覧と既定値は `src/core/schema.js` の `TOKENS` が正です。主なもの:
+   ```json
+   {
+     "$schema": "https://raw.githubusercontent.com/FUJIYAMA2236/kamishibai/main/docs/theme.schema.json",
+     "name": "自社ブランド",
+     "tokens": {
+       "bg": "#ffffff",
+       "text": "#1f2430",
+       "accent": "#d9480f",
+       "accent2": "#1971c2"
+     }
+   }
+   ```
 
-| キー | 内容 |
+   `$schema` の行を書いておくと、VS Code などのエディタで項目の候補と間違いの指摘が出ます。
+
+2. 必要なら `theme.css` を書く（例は [THEME_REFERENCE.md の theme.css](THEME_REFERENCE.md#themecss)）
+3. アプリの「デザイン」→「テーマ」→「自作テーマを読み込む・書き出す」→「フォルダから読み込む…」で `my-brand/` を選ぶ
+4. 「全体」タブのテーマの一覧に出るので、選ぶ
+
+読み込むと、ユーザーのテーマのフォルダ（Windows: `%APPDATA%\Kamishibai\themes\my-brand\`）にコピーされます。
+書き直したら、もう一度読み込む（上書きの確認が出ます）か、ユーザーのテーマのフォルダの中を直接書き換えてください
+（「テーマのフォルダを開く」で開けます。直接置いたフォルダも、そのまま読み込まれます）。
+
+知らないトークンや、選べない値を書いたときは、読み込んだあとに一覧で知らせます（その項目は使われません）。
+
+## 3. テーマを人に渡す・別の PC で使う
+
+- 「使用中のテーマを zip に書き出す…」で `<ID>.zip` を作り、渡す
+- 受け取った人は「theme.json / zip を読み込む…」でその zip を選ぶ
+- 1 ファイル（.kami）に保存したスライドには、使っているテーマが一緒に入るので、テーマを別に渡さなくても同じ見た目で開けます
+
+## テーマを探す場所
+
+| 場所 | 中身 |
 | --- | --- |
-| `bg` `surface` `text` `muted` `accent` `accent2` | 背景 / コード等のパネル / 文字 / 補助文字 / アクセント 2 色 |
-| `fontHeading` `fontBody` `fontMono` | フォント（CSS の font-family 形式） |
-| `baseSize` `headingScale` `titleScale` `headingWeight` `lineHeight` `letterSpacing` | 文字の大きさ・太さ・行間・字間 |
-| `padding` `radius` | 余白・角丸（コードブロック等） |
-| `colStyle` / `boxRadius` | カラムの囲み（`none` `outline` `fill` `card`）/ 箱の角丸（px、既定 20） |
-| `headingStyle` | 見出しの飾り: `plain` `bar` `underline` `gradient` `tag` |
-| `bulletStyle` | 箇条書きの記号: `dot` `dash` `arrow` `check` `square` |
-| `titleAlign` / `bodyAlign` | タイトルの横位置（`left` `center`）/ 本文の縦位置（`top` `center`） |
-| `bgSlide` `bgTitle` `bgSection` | 背景を CSS の `background` 値で（グラデーション等） |
+| `<プロジェクト>/themes/<ID>/` | そのプロジェクトに同梱したテーマ（.kami に入っていたものもここ） |
+| ユーザーのテーマ（Windows: `%APPDATA%\Kamishibai\themes\<ID>\`） | GUI で作った・読み込んだテーマ。どのプロジェクトからも使える |
+| ツール同梱 `themes/<ID>/` | Snow / Paper / Midnight など。直接は編集できない（同じ ID では読み込めない） |
 
-背景の値の中では、ほかのトークンを `var(--ks-accent)` のように参照できます:
+同じ ID があるときは、表の上のものが優先されます。
 
-```json
-"bgTitle": "radial-gradient(900px 520px at 90% -10%, color-mix(in srgb, var(--ks-accent) 34%, transparent), transparent 62%), var(--ks-bg)"
-```
+## 同梱テーマを手本にする
 
-`animation` のキー: `transition`（`none` `fade` `slide` `zoom` `blur`）、`entrance`（`none` `fade` `rise` `slide` `zoom` `blur`）、
-`build`（`none` `items`）、`duration`（ms）、`stagger`（ms）。
-
-## theme.css
-
-スライドはすべて `.ks-deck` の中にあるので、セレクタは `.ks-deck` から書きます。
-
-```css
-/* タイトルを大文字に */
-.ks-deck .ks-layout-title h1 { text-transform: uppercase; }
-
-/* セクションスライドだけ色を反転 */
-.ks-deck .ks-layout-section { --ks-text: #fff; --ks-muted: #ccc; }
-```
-
-よく使うクラス:
-
-| セレクタ | 対象 |
-| --- | --- |
-| `.ks-slide` | スライド 1 枚 |
-| `.ks-layout-title` / `-section` / `-content` / `-center` / `-columns` / `-image-right` / `-image-left` / `-image-full` / `-quote` | レイアウト別 |
-| `.ks-bg` | 背景用の空き要素（`::before` で模様を足せる） |
-| `.ks-head` / `.ks-body` / `.ks-media` / `.ks-cols` / `.ks-col` | 見出し・本文・横の画像・カラム |
-| `.ks-code` / `.ks-figure` / `.ks-mermaid` | コード・図・mermaid |
-| `.ks-chrome` / `.ks-footer` / `.ks-page` / `.ks-progress` | フッター・ページ番号・進捗バー |
-
-同梱テーマ（`themes/midnight` など）の `theme.css` が実例になります。
+ツール同梱のテーマ（このリポジトリの [`themes/`](../themes)）の theme.json と theme.css が、そのまま実例になります。
+アプリで同梱テーマを選び、「新しいテーマとして保存」で複製してから直すのが手早い方法です。
 
 ## 優先順位
 

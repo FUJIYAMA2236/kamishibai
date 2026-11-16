@@ -87,6 +87,11 @@
     { key: 'headingWeight', group: 'type', label: '見出しの太さ', type: 'number', min: 300, max: 900, step: 100, default: 700 },
     { key: 'lineHeight', group: 'type', label: '行間', type: 'number', min: 1.2, max: 2.2, step: 0.05, default: 1.6 },
     { key: 'letterSpacing', group: 'type', label: '見出しの字間', type: 'number', unit: 'em', min: -0.05, max: 0.2, step: 0.01, default: 0.01 },
+    // 日本語の折り返し。phrase = 文節の切れ目で折り返し、短い文は行の長さをそろえる（Chrome / Edge / WebView2 の word-break: auto-phrase）
+    {
+      key: 'lineBreak', group: 'type', label: '日本語の折り返し', type: 'select', out: 'attr', default: 'phrase',
+      options: [['phrase', '文節で（読みやすく）'], ['char', '文字ごと（詰めて）']],
+    },
 
     // ---- 形・余白 ----
     { key: 'padding', group: 'shape', label: '余白', type: 'number', unit: 'px', min: 32, max: 120, step: 2, default: 72 },

@@ -170,6 +170,14 @@
   text-wrap: balance;
   word-break: auto-phrase;
 }
+/* ---- 日本語の折り返し（トークン lineBreak → data-line-break） ----
+   phrase: 文節の切れ目で折り返す（word-break: auto-phrase。lang="ja" のときに効く。対応していないブラウザでは文字ごとのまま）。
+   さらに、短い文（カラムの中・中央寄せ・引用・表紙）は各行の長さをそろえ（balance）、本文は最後の行が 1〜2 文字だけにならないようにする（pretty）。
+   char: これまでどおり文字ごと（見出しも） */
+.ks-deck[data-line-break='phrase'] .ks-slide :is(p, li, td, th, blockquote, figcaption, dt, dd) { word-break: auto-phrase; text-wrap: pretty; }
+.ks-deck[data-line-break='phrase'] .ks-slide :is(.ks-col, .ks-layout-title .ks-body, .ks-layout-section .ks-body, .ks-layout-center .ks-body, .ks-layout-quote .ks-body) :is(p, blockquote) { text-wrap: balance; }
+.ks-deck[data-line-break='char'] .ks-slide :is(h1, h2, h3, h4) { word-break: normal; }
+
 .ks-slide h1 { font-size: calc(var(--ks-heading-scale) * 1.2em); }
 .ks-slide h2 { font-size: calc(var(--ks-heading-scale) * 1em); }
 .ks-slide h3 { font-size: 1.15em; color: var(--ks-accent); }

@@ -1,0 +1,411 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/FUJIYAMA2236/kamishibai/main/docs/theme.schema.json",
+  "title": "Kamishibai theme.json",
+  "description": "Kamishibai のテーマ（themes/<ID>/theme.json）。docs/THEME_REFERENCE.md も参照。scripts/theme-reference.js で生成。",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "description": "一覧に出る名前"
+    },
+    "description": {
+      "type": "string",
+      "description": "説明"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "simple",
+        "decorative"
+      ],
+      "description": "一覧での分類"
+    },
+    "order": {
+      "type": "number",
+      "description": "並び順（小さいほど先）"
+    },
+    "aspect": {
+      "type": "string",
+      "enum": [
+        "16:9",
+        "16:10",
+        "4:3"
+      ],
+      "description": "スライドの縦横比"
+    },
+    "tokens": {
+      "type": "object",
+      "properties": {
+        "bg": {
+          "description": "背景",
+          "type": "string",
+          "default": "#0b1020"
+        },
+        "surface": {
+          "description": "パネル（コード等）",
+          "type": "string",
+          "default": "#141b33"
+        },
+        "text": {
+          "description": "文字",
+          "type": "string",
+          "default": "#e8ecf8"
+        },
+        "muted": {
+          "description": "補助文字",
+          "type": "string",
+          "default": "#8f9bbd"
+        },
+        "accent": {
+          "description": "アクセント",
+          "type": "string",
+          "default": "#7c9cff"
+        },
+        "accent2": {
+          "description": "アクセント2",
+          "type": "string",
+          "default": "#5eead4"
+        },
+        "fontHeading": {
+          "description": "見出しフォント",
+          "type": "string",
+          "default": "\"Inter\", \"Segoe UI\", \"Hiragino Sans\", \"Hiragino Kaku Gothic ProN\", \"BIZ UDPGothic\", \"Yu Gothic UI\", \"Meiryo\", \"Noto Sans JP\", sans-serif"
+        },
+        "fontBody": {
+          "description": "本文フォント",
+          "type": "string",
+          "default": "\"Inter\", \"Segoe UI\", \"Hiragino Sans\", \"Hiragino Kaku Gothic ProN\", \"BIZ UDPGothic\", \"Yu Gothic UI\", \"Meiryo\", \"Noto Sans JP\", sans-serif"
+        },
+        "fontMono": {
+          "description": "コードフォント",
+          "type": "string",
+          "default": "\"Cascadia Code\", \"SF Mono\", \"Consolas\", \"BIZ UDGothic\", \"MS Gothic\", \"Osaka-Mono\", monospace"
+        },
+        "baseSize": {
+          "description": "本文サイズ（px）",
+          "type": "number",
+          "minimum": 18,
+          "maximum": 40,
+          "default": 28
+        },
+        "headingScale": {
+          "description": "見出しの大きさ",
+          "type": "number",
+          "minimum": 1.1,
+          "maximum": 2.4,
+          "default": 1.6
+        },
+        "titleScale": {
+          "description": "タイトルの大きさ",
+          "type": "number",
+          "minimum": 1.6,
+          "maximum": 4.5,
+          "default": 2.8
+        },
+        "headingWeight": {
+          "description": "見出しの太さ",
+          "type": "number",
+          "minimum": 300,
+          "maximum": 900,
+          "default": 700
+        },
+        "lineHeight": {
+          "description": "行間",
+          "type": "number",
+          "minimum": 1.2,
+          "maximum": 2.2,
+          "default": 1.6
+        },
+        "letterSpacing": {
+          "description": "見出しの字間（em）",
+          "type": "number",
+          "minimum": -0.05,
+          "maximum": 0.2,
+          "default": 0.01
+        },
+        "lineBreak": {
+          "description": "日本語の折り返し",
+          "type": "string",
+          "enum": [
+            "phrase",
+            "char"
+          ],
+          "default": "phrase",
+          "markdownEnumDescriptions": [
+            "文節で（読みやすく）",
+            "文字ごと（詰めて）"
+          ]
+        },
+        "padding": {
+          "description": "余白（px）",
+          "type": "number",
+          "minimum": 32,
+          "maximum": 120,
+          "default": 72
+        },
+        "radius": {
+          "description": "角丸（px）",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 40,
+          "default": 14
+        },
+        "headingStyle": {
+          "description": "見出しの飾り",
+          "type": "string",
+          "enum": [
+            "plain",
+            "bar",
+            "underline",
+            "gradient",
+            "tag"
+          ],
+          "default": "plain",
+          "markdownEnumDescriptions": [
+            "なし",
+            "左バー",
+            "下線",
+            "グラデ文字",
+            "帯"
+          ]
+        },
+        "bulletStyle": {
+          "description": "箇条書きの記号",
+          "type": "string",
+          "enum": [
+            "dot",
+            "dash",
+            "arrow",
+            "check",
+            "square",
+            "custom"
+          ],
+          "default": "dot",
+          "markdownEnumDescriptions": [
+            "●",
+            "–",
+            "→",
+            "✓",
+            "■",
+            "好きな記号…"
+          ]
+        },
+        "bulletChar": {
+          "description": "記号（1 段目）",
+          "type": "string",
+          "default": "◆"
+        },
+        "bulletChar2": {
+          "description": "記号（2 段目〜）",
+          "type": "string",
+          "default": "–"
+        },
+        "titleAlign": {
+          "description": "タイトルの位置",
+          "type": "string",
+          "enum": [
+            "left",
+            "center"
+          ],
+          "default": "left",
+          "markdownEnumDescriptions": [
+            "左寄せ",
+            "中央"
+          ]
+        },
+        "bodyAlign": {
+          "description": "本文の縦位置",
+          "type": "string",
+          "enum": [
+            "top",
+            "center"
+          ],
+          "default": "top",
+          "markdownEnumDescriptions": [
+            "上",
+            "中央"
+          ]
+        },
+        "colStyle": {
+          "description": "囲み",
+          "type": "string",
+          "enum": [
+            "none",
+            "outline",
+            "fill",
+            "card"
+          ],
+          "default": "none",
+          "markdownEnumDescriptions": [
+            "なし",
+            "枠線",
+            "塗り",
+            "カード"
+          ]
+        },
+        "colAlign": {
+          "description": "文字の横位置",
+          "type": "string",
+          "enum": [
+            "auto",
+            "left",
+            "center"
+          ],
+          "default": "auto",
+          "markdownEnumDescriptions": [
+            "自動",
+            "左",
+            "中央"
+          ]
+        },
+        "colValign": {
+          "description": "文字の縦位置",
+          "type": "string",
+          "enum": [
+            "auto",
+            "top",
+            "center",
+            "bottom"
+          ],
+          "default": "auto",
+          "markdownEnumDescriptions": [
+            "自動",
+            "上詰め",
+            "中央",
+            "下詰め"
+          ]
+        },
+        "boxRadius": {
+          "description": "箱の角丸（px）",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 48,
+          "default": 20
+        },
+        "colColor1": {
+          "description": "カラム1の色",
+          "type": "string",
+          "default": ""
+        },
+        "colColor2": {
+          "description": "カラム2の色",
+          "type": "string",
+          "default": ""
+        },
+        "colColor3": {
+          "description": "カラム3の色",
+          "type": "string",
+          "default": ""
+        },
+        "colColor4": {
+          "description": "カラム4の色",
+          "type": "string",
+          "default": ""
+        },
+        "colText": {
+          "description": "塗りの上の文字",
+          "type": "string",
+          "enum": [
+            "auto",
+            "light",
+            "dark"
+          ],
+          "default": "auto",
+          "markdownEnumDescriptions": [
+            "自動（色の明るさで）",
+            "白",
+            "黒"
+          ]
+        },
+        "bgSlide": {
+          "description": "通常スライド背景",
+          "type": "string",
+          "default": ""
+        },
+        "bgTitle": {
+          "description": "タイトル背景",
+          "type": "string",
+          "default": ""
+        },
+        "bgSection": {
+          "description": "セクション背景",
+          "type": "string",
+          "default": ""
+        }
+      },
+      "additionalProperties": false
+    },
+    "animation": {
+      "type": "object",
+      "properties": {
+        "transition": {
+          "description": "スライド切り替え",
+          "type": "string",
+          "enum": [
+            "none",
+            "fade",
+            "slide",
+            "zoom",
+            "blur"
+          ],
+          "default": "fade"
+        },
+        "entrance": {
+          "description": "要素の登場",
+          "type": "string",
+          "enum": [
+            "none",
+            "fade",
+            "rise",
+            "slide",
+            "zoom",
+            "blur"
+          ],
+          "default": "rise"
+        },
+        "build": {
+          "description": "段階表示",
+          "type": "string",
+          "enum": [
+            "none",
+            "items"
+          ],
+          "default": "none"
+        },
+        "duration": {
+          "description": "速さ (ms)",
+          "type": "number",
+          "minimum": 200,
+          "maximum": 1400,
+          "default": 650
+        },
+        "stagger": {
+          "description": "ずらし (ms)",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 240,
+          "default": 70
+        }
+      },
+      "additionalProperties": false
+    },
+    "chrome": {
+      "type": "object",
+      "properties": {
+        "pageNumber": {
+          "type": "boolean",
+          "description": "ページ番号"
+        },
+        "progress": {
+          "type": "boolean",
+          "description": "進捗バー"
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

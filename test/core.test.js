@@ -398,3 +398,28 @@ test('pptx / odp: シーンからスライド・ノート・図形・表・画�
   const content = odp.find((e) => e.name === 'content.xml').data;
   for (const s of ['<draw:page ', '<draw:polygon ', '<presentation:notes>', 'text:bullet-char="◆"']) assert.ok(content.includes(s), s);
 });
+
+test('テーマのリファレンス: docs が schema.js と一致し、同梱テーマは知っている項目と値だけを使う', () => {
+  const fs = require('fs');
+  const root = path.join(__dirname, '..');
+  // scripts/theme-reference.js を実行し忘れていないか
+  for (const [rel, text] of Object.entries(require('../scripts/theme-reference').build())) {
+    assert.equal(fs.readFileSync(path.join(root, rel), 'utf8').replace(/\r\n/g, '\n'), text, rel + ' が古い（node scripts/theme-reference.js を実行）');
+  }
+  const defs = Object.fromEntries(schema.TOKENS.map((d) => [d.key, d]));
+  for (const id of fs.readdirSync(path.join(root, 'themes'))) {
+    const t = JSON.parse(fs.readFileSync(path.join(root, 'themes', id, 'theme.json'), 'utf8'));
+    for (const [k, v] of Object.entries(t.tokens || {})) {
+      assert.ok(defs[k], id + ': 知らないトークン ' + k);
+      if (defs[k].type === 'select') assert.ok(defs[k].options.some((o) => o[0] === v), id + ': ' + k + ' の値 ' + v);
+      if (defs[k].type === 'number') assert.equal(typeof v, 'number', id + ': ' + k);
+    }
+    for (const k of Object.keys(t.animation || {})) assert.ok(schema.ANIMATION[k], id + ': 知らないアニメーション ' + k);
+  }
+});
+
+test('日本語の折り返し: 既定は文節（data-line-break="phrase"）、文字ごとにも切り替えられる', () => {
+  assert.equal(render.resolveDesign({}, {}).tokens.lineBreak, 'phrase');
+  const out = renderOne('# A', { tokens: { lineBreak: 'char' } });
+  assert.equal(out.deckAttrs['data-line-break'], 'char');
+});

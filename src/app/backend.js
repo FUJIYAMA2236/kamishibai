@@ -201,6 +201,111 @@
     }
 
     // ==================================================================
+    // 自作テーマの読み込み・書き出し（ユーザーのテーマ = <userData>/themes/<ID>/ に入れる）
+    // ==================================================================
+    const BUILTIN_THEME = async (id) => !!(await H.bundled.read('themes/' + id + '/theme.json'));
+    /** フォルダ名などからテーマ ID を作る（英小文字・数字・ハイフン） */
+    function themeIdFrom(name) {
+      const id = String(name || '').toLowerCase().replace(/\.(zip|json)$/, '').replace(/[^a-z0-9_-]+/g, '-').replace(/^[-_]+|[-_]+$/g, '').slice(0, 40);
+      return /^[a-z0-9][a-z0-9_-]*$/.test(id) ? id : '';
+    }
+    /** theme.json の中身を調べる（読めないものは UserError、知らない項目などは warnings に） */
+    function checkTheme(id, jsonText, warnings) {
+      let t;
+      try { t = JSON.parse(jsonText); } catch (e) { throw new UserError('「' + id + '」の theme.json を JSON として読めません: ' + e.message); }
+      if (!t || typeof t !== 'object' || Array.isArray(t)) throw new UserError('「' + id + '」の theme.json の中身がオブジェクト（{ … }）ではありません');
+      const defs = {};
+      for (const d of schema.TOKENS) defs[d.key] = d;
+      for (const [k, v] of Object.entries(t.tokens || {})) {
+        const d = defs[k];
+        if (!d) { warnings.push(id + ': 知らないトークン「' + k + '」は使われません'); continue; }
+        if (d.type === 'select' && !d.options.some((o) => o[0] === v)) warnings.push(id + ': 「' + k + '」の値「' + v + '」は選べる値（' + d.options.map((o) => o[0]).join(' / ') + '）にありません');
+        if (d.type === 'number' && typeof v !== 'number') warnings.push(id + ': 「' + k + '」は数値で書いてください（いまは「' + v + '」）');
+      }
+      for (const k of Object.keys(t.animation || {})) if (!schema.ANIMATION[k]) warnings.push(id + ': 知らないアニメーションの項目「' + k + '」は使われません');
+      if (t.aspect && !schema.ASPECTS[t.aspect]) warnings.push(id + ': 縦横比「' + t.aspect + '」は使えません（' + Object.keys(schema.ASPECTS).join(' / ') + '）');
+      return t;
+    }
+    /**
+     * 自作テーマを読み込む。path は次のどれか:
+     *   テーマのフォルダ（中に theme.json）/ theme.json そのもの / テーマのフォルダをいくつか入れたフォルダ / それらを zip にしたもの
+     * フォルダ名（zip の中のフォルダ名・zip の名前）がテーマ ID になる。
+     * @returns {{ imported: [{ id, name }], warnings: string[] }}。既にあるテーマは overwrite が無いと 409（exists に ID）
+     */
+    async function importThemes(src, o) {
+      o = o || {};
+      src = H.absolute(String(src || '').trim());
+      const st = src && (await H.stat(src));
+      if (!st) throw new UserError('ファイルが見つかりません: ' + src, 404);
+      const found = []; // { id, json, css }
+      const fromDir = async (dir) => {
+        const json = await readText(P.join(dir, 'theme.json'));
+        if (json != null) { found.push({ id: themeIdFrom(P.basename(dir)), json, css: (await readText(P.join(dir, 'theme.css'))) || '' }); return; }
+        for (const e of await H.readDir(dir)) if (e.isDir) {
+          const sub = P.join(dir, e.name);
+          const j = await readText(P.join(sub, 'theme.json'));
+          if (j != null) found.push({ id: themeIdFrom(e.name), json: j, css: (await readText(P.join(sub, 'theme.css'))) || '' });
+        }
+      };
+      if (st.isDir) await fromDir(src);
+      else if (/\.json$/i.test(src)) await fromDir(P.dirname(src));
+      else if (/\.zip$/i.test(src)) {
+        let entries;
+        try { entries = await H.zip.read(await H.readFile(src)); } catch (e) { throw new UserError('zip を開けませんでした: ' + e.message); }
+        const byName = new Map(entries.map((e) => [e.name.replace(/\\/g, '/'), e]));
+        for (const [name, e] of byName) {
+          const m = /^(?:(.*)\/)?theme\.json$/.exec(name);
+          if (!m) continue;
+          const prefix = m[1] ? m[1] + '/' : '';
+          const css = byName.get(prefix + 'theme.css');
+          found.push({ id: themeIdFrom(m[1] ? m[1].split('/').pop() : P.basename(src)), json: toText(e.data), css: css ? toText(css.data) : '' });
+        }
+      } else {
+        throw new UserError('テーマのフォルダ・theme.json・zip のどれかを選んでください');
+      }
+      if (!found.length) throw new UserError('theme.json が見つかりません（テーマのフォルダには theme.json が必要です）');
+      const warnings = [];
+      const exists = [];
+      for (const f of found) {
+        if (!f.id) throw new UserError('テーマ ID にできるフォルダ名ではありません。フォルダ名を半角英小文字・数字・ハイフンにしてください（例: my-theme）');
+        if (await BUILTIN_THEME(f.id)) throw new UserError('「' + f.id + '」は同梱のテーマと同じ ID です。フォルダ名（ID）を変えてから読み込んでください');
+        f.theme = checkTheme(f.id, lf(f.json), warnings);
+        if (await H.stat(P.join(userThemesDir(), f.id, 'theme.json'))) exists.push(f.id);
+      }
+      if (exists.length && !o.overwrite) {
+        const e = new UserError('同じ ID のテーマが既にあります: ' + exists.join('、'), 409);
+        e.exists = exists;
+        throw e;
+      }
+      for (const f of found) {
+        const dir = P.join(userThemesDir(), f.id);
+        await H.mkdir(dir);
+        await H.writeFile(P.join(dir, 'theme.json'), withFinalNewline(lf(f.json)));
+        if (f.css.trim()) await H.writeFile(P.join(dir, 'theme.css'), withFinalNewline(lf(f.css)));
+        else await H.removeFile(P.join(dir, 'theme.css'));
+      }
+      return { imported: found.map((f) => ({ id: f.id, name: f.theme.name || f.id })), warnings };
+    }
+    /** テーマを zip（<ID>/theme.json と theme.css）に書き出す（人に渡す・別の PC で読み込む用） */
+    async function exportTheme(id, out) {
+      assertThemeId(id);
+      const lib = project || themeLibrary(null);
+      const t = await lib.readTheme(id);
+      if (!t) throw new UserError('テーマ「' + id + '」が見つかりません', 404);
+      const json = { name: t.name, description: t.description || undefined, category: t.category, order: t.order === 100 ? undefined : t.order, aspect: t.aspect, tokens: t.tokens, animation: t.animation, chrome: t.chrome };
+      const enc = (s) => (typeof TextEncoder !== 'undefined' ? new TextEncoder().encode(s) : s);
+      const entries = [{ name: id + '/theme.json', data: enc(render.serialize(json)) }];
+      if (t.css && t.css.trim()) entries.push({ name: id + '/theme.css', data: enc(withFinalNewline(t.css)) });
+      out = H.absolute(String(out || '').trim());
+      if (!out) throw new UserError('書き出す場所を指定してください');
+      if (!/\.zip$/i.test(out)) out += '.zip';
+      await H.mkdir(P.dirname(out));
+      await H.writeFile(out, await H.zip.write(entries));
+      exported.add(out);
+      return { file: out };
+    }
+
+    // ==================================================================
     // プロジェクト（slides.md のあるフォルダ）
     // ==================================================================
     async function initProject(dir, o) {
@@ -737,6 +842,24 @@
           const r = await saveExportFile(p, query.kind === 'doc' ? 'doc' : 'slides', String(query.format || ''), query.out || null, bodyBytes(body));
           exported.add(r.file);
           return ok(r);
+        }
+      }
+      if (seg[1] === 'themes' && seg.length === 3 && method === 'POST') {
+        const b = bodyJson(body);
+        if (seg[2] === 'import') {
+          try {
+            return ok(await importThemes(b.path, { overwrite: !!b.overwrite }));
+          } catch (e) {
+            if (e.exists) return { status: 409, json: { error: e.message, exists: e.exists } };
+            throw e;
+          }
+        }
+        if (seg[2] === 'export') return ok(await exportTheme(String(b.id || ''), b.out));
+        if (seg[2] === 'reveal') {
+          // ユーザーのテーマのフォルダを開く（自分で theme.json を書いて置く人向け）
+          await H.mkdir(userThemesDir());
+          if (H.reveal) await H.reveal(userThemesDir());
+          return ok({ dir: userThemesDir() });
         }
       }
       if (seg[1] === 'themes' && seg.length === 3 && method === 'PUT') {

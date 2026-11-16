@@ -91,6 +91,50 @@ test('テーマ: 同梱テーマが見え、作ったテーマはユーザーの
   await assert.rejects(p.writeTheme('Bad Id', {}), /テーマID/);
 });
 
+test('自作テーマ: フォルダ・theme.json・zip から読み込み、zip に書き出せる', async (t) => {
+  const b = newBackend(t);
+  const api = (method, url, body) => b.api(method, url.split('/').filter(Boolean), {}, body);
+  const base = tempDir(t);
+  // 1) フォルダ（ID はフォルダ名を英小文字に）。知らないトークンと選べない値は警告
+  const dir = path.join(base, 'My_Brand');
+  fs.mkdirSync(dir);
+  fs.writeFileSync(path.join(dir, 'theme.json'), JSON.stringify({ name: '自社', tokens: { accent: '#ff0000', nope: 1, headingStyle: 'wavy' } }));
+  fs.writeFileSync(path.join(dir, 'theme.css'), '.ks-deck h1 { color: red; }\r\n');
+  let r = await api('POST', '/api/themes/import', { path: dir });
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.json.imported, [{ id: 'my_brand', name: '自社' }]);
+  assert.equal(r.json.warnings.length, 2);
+  assert.equal(fs.readFileSync(path.join(userThemes, 'my_brand', 'theme.css'), 'utf8'), '.ks-deck h1 { color: red; }\n');
+  // 2) 同じ ID は上書きの確認（409）→ overwrite で上書き
+  r = await api('POST', '/api/themes/import', { path: path.join(dir, 'theme.json') });
+  assert.equal(r.status, 409);
+  assert.deepEqual(r.json.exists, ['my_brand']);
+  r = await api('POST', '/api/themes/import', { path: path.join(dir, 'theme.json'), overwrite: true });
+  assert.equal(r.status, 200);
+  // 3) 書き出した zip は、別の名前のテーマとしてそのまま読み込める
+  const zip = path.join(base, 'out', 'shared');
+  r = await api('POST', '/api/themes/export', { id: 'my_brand', out: zip });
+  assert.equal(r.json.file, zip + '.zip');
+  const names = readZip(fs.readFileSync(zip + '.zip')).map((e) => e.name).sort();
+  assert.deepEqual(names, ['my_brand/theme.css', 'my_brand/theme.json']);
+  removeDir(path.join(userThemes, 'my_brand'));
+  r = await api('POST', '/api/themes/import', { path: zip + '.zip' });
+  assert.deepEqual(r.json.imported.map((x) => x.id), ['my_brand']);
+  const state = await api('GET', '/api/state');
+  assert.equal(state.json.themes.my_brand.tokens.accent, '#ff0000');
+  // 4) 同梱テーマと同じ ID・壊れた JSON・theme.json の無いフォルダは読み込まない
+  const paper = path.join(base, 'paper');
+  fs.mkdirSync(paper);
+  fs.writeFileSync(path.join(paper, 'theme.json'), '{}');
+  await assert.rejects(api('POST', '/api/themes/import', { path: paper }), /同梱のテーマと同じ ID/);
+  const broken = path.join(base, 'broken');
+  fs.mkdirSync(broken);
+  fs.writeFileSync(path.join(broken, 'theme.json'), '{ nope');
+  await assert.rejects(api('POST', '/api/themes/import', { path: broken }), /JSON として読めません/);
+  await assert.rejects(api('POST', '/api/themes/import', { path: base + path.sep + 'out' }), /theme\.json が見つかりません/);
+  removeDir(path.join(userThemes, 'my_brand'));
+});
+
 test('zip: 書いて読むと同じ（日本語のファイル名・圧縮あり / なし）', () => {
   const entries = [
     { name: 'slides.md', data: Buffer.from('# あいう\n'.repeat(50)) },

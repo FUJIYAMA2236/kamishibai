@@ -43,7 +43,14 @@
     absolute: (p) => P.normalize(String(p || '')),
     bundled: {
       async read(rel) {
-        const res = await fetch('/' + rel.split('/').map(encodeURIComponent).join('/'));
+        // 同梱の一覧（bundle.json）に無いものは読まない。アプリの中の URL は、無いファイルでも index.html を返すことがあるため
+        const parts = rel.split('/');
+        if (parts[0] === 'themes' || parts[0] === 'sample') {
+          let node = await bundleList();
+          for (const part of parts) { node = node && Object.prototype.hasOwnProperty.call(node, part) ? node[part] : undefined; }
+          if (node !== null) return null; // null = ファイル（ある）、undefined = 無い、オブジェクト = フォルダ
+        }
+        const res = await fetch('/' + parts.map(encodeURIComponent).join('/'));
         return res.ok ? new Uint8Array(await res.arrayBuffer()) : null;
       },
       async list(rel) {
@@ -210,6 +217,21 @@
     close: leave('閉じる', () => backend.close()),
     reveal: async () => { const p = backend.project; if (p && !p.temporary) await T.opener.revealItemInDir(p.kamiFile || p.dir); },
     openExported: (file) => T.opener.openPath(file),
+    /** 読み込む自作テーマを選ぶ（kind: folder = フォルダ / file = theme.json か zip） */
+    async pickThemeSource(kind) {
+      await ready;
+      const r = kind === 'folder'
+        ? await D.open({ title: 'テーマのフォルダを選ぶ（theme.json の入ったフォルダ）', directory: true })
+        : await D.open({ title: 'テーマを選ぶ（theme.json か zip）', filters: [{ name: 'テーマ', extensions: ['json', 'zip'] }] });
+      return pathOf(r) || null;
+    },
+    /** テーマの書き出し先（zip）を選ぶ */
+    async pickThemeExport(id) {
+      await ready;
+      const file = await D.save({ title: 'テーマを zip に書き出す', defaultPath: id + '.zip', filters: [{ name: 'zip', extensions: ['zip'] }] });
+      if (!file) return null;
+      return /\.zip$/i.test(file) ? file : file + '.zip';
+    },
     /** 書き出し先を選ぶ（null ならキャンセル） */
     async chooseExportPath(o) {
       await ready;

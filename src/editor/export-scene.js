@@ -118,11 +118,43 @@
     };
   }
 
-  /** 要素の中の文字を runs にする（中の段落要素・リストは skip で飛ばす） */
+  /**
+   * 要素の中の文字を runs にする（中の段落要素・リストは skip で飛ばす）。
+   * 画面で折り返している位置には { br: true } を入れる（runs.lines = true）。PowerPoint などは自分で折り返すと
+   * 文節の区切り（word-break: auto-phrase）や行の長さのそろえ（text-wrap: balance）を再現できないので、
+   * 画面と同じ位置で改行し、書き出し先では折り返さない設定にする（textItem の single）。
+   */
+  const lineRange = document.createRange();
   function runsOf(el, opts) {
     opts = opts || {};
     const runs = [];
     const pre = opts.pre;
+    let prevBox = null; // 直前の文字の位置（行が変わったかを見る）
+    /** テキストノードを、画面の行の変わり目で分ける。空白は 1 つにまとめる */
+    function splitByLines(n, s) {
+      const src = n.textContent;
+      let cur = '';
+      for (let i = 0; i < src.length; i++) {
+        const ch = src[i];
+        if (/[\t\n\r ]/.test(ch)) { if (!cur.endsWith(' ')) cur += ' '; continue; }
+        // サロゲートペア（絵文字など）は 2 つで 1 文字
+        const len = /[\uD800-\uDBFF]/.test(ch) && i + 1 < src.length ? 2 : 1;
+        lineRange.setStart(n, i);
+        lineRange.setEnd(n, i + len);
+        const box = lineRange.getClientRects()[0];
+        if (box && box.height > 0) {
+          if (prevBox && box.top > prevBox.top + Math.min(box.height, prevBox.height) * 0.6) {
+            if (cur) runs.push(Object.assign({ text: cur }, s));
+            runs.push({ br: true, soft: true });
+            cur = '';
+          }
+          prevBox = box;
+        }
+        cur += src.slice(i, i + len);
+        i += len - 1;
+      }
+      if (cur) runs.push(Object.assign({ text: cur }, s));
+    }
     function walk(node) {
       for (const n of node.childNodes) {
         if (n.nodeType === 3) {
@@ -136,10 +168,10 @@
               if (line) runs.push(Object.assign({ text: line }, s));
             });
           } else {
-            runs.push(Object.assign({ text }, s));
+            splitByLines(n, s);
           }
         } else if (n.nodeType === 1) {
-          if (n.tagName === 'BR') { runs.push({ br: true }); continue; }
+          if (n.tagName === 'BR') { runs.push({ br: true }); prevBox = null; continue; }
           if (opts.skip && opts.skip(n)) continue;
           const st = getComputedStyle(n);
           if (st.display === 'none') continue;
@@ -165,7 +197,13 @@
         }
       }
     }
-    return runs.filter((r) => r.br || r.text);
+    const out = runs.filter((r) => r.br || r.text);
+    // 画面の改行が文字の前後の端に残ったもの（空白だけで行が変わった場合）は落とす
+    while (out.length && out[out.length - 1].soft) out.pop();
+    while (out.length && out[0].soft) out.shift();
+    out.forEach((r) => { delete r.soft; });
+    if (!pre) out.lines = true; // 画面の行の位置を写した（折り返さない設定にしてよい）
+    return out;
   }
 
   function paraOf(el, runs, extra) {
@@ -228,7 +266,8 @@
         for (const [i, f] of sides) if (bw[i] > 0 && bc[i]) items.push(Object.assign({ kind: 'shape', geom: 'rect', fill: bc[i].hex, fillAlpha: bc[i].a, line: null }, f(bw[i])));
       }
       // カードの上の色の帯（box-shadow: inset 0 N 0 色）
-      const m = /(rgba?\([^)]*\)|color\([^)]*\)|#[0-9a-f]{3,8})\s+0(?:px)?\s+([\d.]+)px\s+0(?:px)?\s+inset|inset\s+0(?:px)?\s+([\d.]+)px\s+0(?:px)?\s+(rgba?\([^)]*\)|color\([^)]*\)|#[0-9a-f]{3,8})/i.exec(st.boxShadow || '');
+      // getComputedStyle は「色 x y ぼかし 広がり inset」の順で返す（広がりの 0px が付く）ので、広がりは省略可として読む
+      const m = /(rgba?\([^)]*\)|color\([^)]*\)|#[0-9a-f]{3,8})\s+0(?:px)?\s+([\d.]+)px\s+0(?:px)?(?:\s+0(?:px)?)?\s+inset|inset\s+0(?:px)?\s+([\d.]+)px\s+0(?:px)?(?:\s+0(?:px)?)?\s+(rgba?\([^)]*\)|color\([^)]*\)|#[0-9a-f]{3,8})/i.exec(st.boxShadow || '');
       if (m) {
         const c = solid(m[1] || m[4]);
         const hgt = px(m[2] || m[3]);
@@ -244,7 +283,8 @@
       const fs = px(st.fontSize) || 16;
       const lh = st.lineHeight === 'normal' ? fs * 1.2 : px(st.lineHeight);
       const content = r.h - px(st.paddingTop) - px(st.paddingBottom);
-      const single = paras.length === 1 && !paras[0].bullet && !paras[0].runs.some((x) => x.br) && content < lh * 1.5;
+      // 画面の改行の位置を写した文字（runsOf の lines）も、書き出し先では折り返さない（文節の区切りを保つ）
+      const single = (paras.length === 1 && !paras[0].bullet && !paras[0].runs.some((x) => x.br) && content < lh * 1.5) || paras.every((p) => p.runs.lines);
       items.push(Object.assign({
         kind: 'text', x: r.x, y: r.y, w: r.w, h: r.h, paras, anchor: 't', single,
         inset: [px(st.paddingLeft) + px(st.borderLeftWidth), px(st.paddingTop) + px(st.borderTopWidth), px(st.paddingRight) + px(st.borderRightWidth), px(st.paddingBottom) + px(st.borderBottomWidth)],
