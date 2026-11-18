@@ -242,12 +242,6 @@
 <script src="/editor/diagram-editor.js"></script>
 <script src="/editor/export-scene.js"></script>
 <script src="/editor/export-office.js"></script>
-<script>
-  KSE.start().catch(function (e) {
-    console.error(e);
-    KSE.toast('起動に失敗しました: ' + e.message, true);
-  });
-</script>
-<script src="/vendor/mermaid.min.js" async onload="window.dispatchEvent(new Event('ks-mermaid-ready'))"></script>
+<script src="/editor/start.js"></script>
 </body>
 </html>

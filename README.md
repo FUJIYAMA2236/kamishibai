@@ -168,6 +168,11 @@ node bin/kamishibai.js help
 
 `decks/demo/` がサンプルのプロジェクト（アプリの「サンプルを開く」の中身）、`themes/` が同梱のテーマです。
 
+## セキュリティ
+
+受け取った .kami や原稿を開いても、パソコンのファイルを読み書きされたり、スクリプトを動かされたりしないように作っています。
+考え方と、脆弱性の報告のしかたは [SECURITY.md](SECURITY.md) を見てください。
+
 ## ライセンス
 
 Kamishibai は [MIT License](LICENSE) です。

@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "エディタの画面（main）に許可する操作",
+  "description": "エディタの画面（main）にだけ許可する操作。発表・資料・PDF のウィンドウには何も許可しない",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -9,18 +9,22 @@
     "core:window:allow-close",
     "core:window:allow-destroy",
     "core:window:allow-set-focus",
-    "core:webview:allow-create-webview-window",
     "core:webview:allow-set-webview-zoom",
-    "dialog:default",
-    "dialog:allow-open",
-    "dialog:allow-save",
-    "dialog:allow-ask",
     "dialog:allow-message",
-    "opener:default",
-    "opener:allow-reveal-item-in-dir",
-    {
-      "identifier": "opener:allow-open-path",
-      "allow": [{ "path": "**" }]
-    }
+    "allow-fs-read",
+    "allow-fs-write",
+    "allow-fs-stat",
+    "allow-fs-list",
+    "allow-fs-mkdir",
+    "allow-fs-remove-file",
+    "allow-fs-remove-dir",
+    "allow-fs-rename",
+    "allow-pick",
+    "allow-confirm-open",
+    "allow-open-exported",
+    "allow-reveal",
+    "allow-app-info",
+    "allow-open-page",
+    "allow-print-pdf"
   ]
 }

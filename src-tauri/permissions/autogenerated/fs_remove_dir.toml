@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-fs-remove-dir"
+description = "Enables the fs_remove_dir command without any pre-configured scope."
+commands.allow = ["fs_remove_dir"]
+
+[[permission]]
+identifier = "deny-fs-remove-dir"
+description = "Denies the fs_remove_dir command without any pre-configured scope."
+commands.deny = ["fs_remove_dir"]

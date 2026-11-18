@@ -28,18 +28,53 @@
   // Markdown
   // ------------------------------------------------------------------
 
+  // 画像の大きさとして受け付ける値（CSS をそのまま書き込まれないように、数値と単位だけ）
+  const SIZE_RE = /^\d+(?:\.\d+)?(?:px|%|em|rem|vw|vh)$/;
   function parseImageAttrs(text) {
     const out = parse.parseAttrs(text);
     const px = (v) => (v && /^[\d.]+$/.test(v) ? v + 'px' : v);
-    out.width = px(out.width);
-    out.height = px(out.height);
+    out.width = SIZE_RE.test(px(out.width) || '') ? px(out.width) : undefined;
+    out.height = SIZE_RE.test(px(out.height) || '') ? px(out.height) : undefined;
+    out.classes = (out.classes || []).filter((c) => /^[\w-]+$/.test(c));
     return out;
   }
 
+  /**
+   * 画像の参照先。プロジェクトの中の相対パス・data:image・http(s) だけを通す（file: や javascript: などは捨てる）。
+   * http(s) の画像は、アプリと書き出した HTML では CSP で読まない（オフラインで動き、開いただけで外部に通信しないように）。
+   */
   function resolveSrc(env, src) {
     if (!src) return '';
-    if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(src)) return src; // http:, data:, blob: など
+    if (/^data:image\/(?:png|jpe?g|gif|webp|svg\+xml|avif);/i.test(src) || /^https?:\/\//i.test(src) || /^blob:/i.test(src)) return src;
+    if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|\\\\)/i.test(src)) return ''; // ほかのスキーム・ネットワークパス
     return env && typeof env.resolveAsset === 'function' ? env.resolveAsset(src) : src;
+  }
+
+  // ------------------------------------------------------------------
+  // 原稿に書いた HTML の無害化
+  // ------------------------------------------------------------------
+  // 原稿（.kami などで他人から受け取ることがある）に書かれた HTML は、次のタグだけを通す。属性は class だけ（英数字・ハイフン・下線）。
+  // それ以外のタグ（script・img・iframe・style・a など）と、on〜 などの属性は、文字としてそのまま見せる（実行されない）。
+  // コメント（<!-- -->）は消す。markdown-it の html_block / html_inline の両方に効かせる。
+  const SAFE_TAGS = new Set([
+    'b', 'strong', 'i', 'em', 'u', 's', 'del', 'ins', 'mark', 'small', 'sub', 'sup', 'kbd', 'code', 'samp', 'var', 'abbr', 'q', 'cite',
+    'span', 'div', 'p', 'br', 'hr', 'ruby', 'rt', 'rp', 'details', 'summary', 'blockquote', 'ul', 'ol', 'li', 'dl', 'dt', 'dd',
+    'table', 'thead', 'tbody', 'tr', 'th', 'td', 'figure', 'figcaption', 'center',
+  ]);
+  const VOID_TAGS = new Set(['br', 'hr']);
+  const TAG_RE = /<!--[\s\S]*?(?:-->|$)|<(\/?)([a-zA-Z][a-zA-Z0-9-]*)((?:\s+[^\s"'<>\/=]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'<>=`]+))?)*)\s*(\/?)>|[<>]/g;
+  function sanitizeHtml(html) {
+    return String(html).replace(TAG_RE, (m, close, name, attrs) => {
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      if (m.startsWith('<!--')) return '';
+      const tag = name.toLowerCase();
+      if (!SAFE_TAGS.has(tag)) return esc(m);
+      if (close) return VOID_TAGS.has(tag) ? '' : '</' + tag + '>';
+      const cm = /\sclass\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'<>=`]+))/i.exec(attrs || '');
+      const cls = cm ? String(cm[1] || cm[2] || cm[3] || '').split(/\s+/).filter((c) => /^[\w-]+$/.test(c)).join(' ') : '';
+      return '<' + tag + (cls ? ' class="' + cls + '"' : '') + '>';
+    });
   }
 
   function imageInfo(token, md, env) {
@@ -77,6 +112,14 @@
    */
   function createMarkdown(markdownit, hljs) {
     const md = markdownit({ html: true, linkify: true, breaks: true });
+    // 原稿の HTML は許可したタグだけを通す（上の sanitizeHtml）。<script> や onerror などは文字として表示する
+    md.renderer.rules.html_block = (tokens, idx) => sanitizeHtml(tokens[idx].content);
+    md.renderer.rules.html_inline = (tokens, idx) => sanitizeHtml(tokens[idx].content);
+    // リンクは http(s)・mailto・ページ内（#）・相対パスだけ（javascript: などは markdown-it も弾くが、念のため狭める）
+    md.validateLink = (url) => {
+      const u = String(url).trim();
+      return !/^[a-z][a-z0-9+.-]*:/i.test(u) || /^(?:https?|mailto):/i.test(u) || /^data:image\/(?:png|jpe?g|gif|webp|avif);/i.test(u);
+    };
 
     md.renderer.rules.fence = function (tokens, idx) {
       const t = tokens[idx];

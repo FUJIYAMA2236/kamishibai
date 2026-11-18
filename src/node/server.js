@@ -55,11 +55,19 @@ function send(res, status, body, type, headers) {
 }
 const sendJson = (res, data, status) => send(res, status || 200, JSON.stringify(data), TYPES['.json']);
 
-function sendFile(req, res, file) {
+// エディタの画面の CSP（アプリの tauri.conf.json と同じ考え方）。インラインのスクリプトと外部への通信を止める
+const EDITOR_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'";
+// プロジェクトのファイル（/files/…）は、ページとして開かれてもスクリプトを動かさない（SVG の中の script など）
+const FILE_CSP = "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox";
+
+function sendFile(req, res, file, csp) {
   if (!file || !fs.existsSync(file) || !fs.statSync(file).isFile()) return send(res, 404, 'Not found');
   const stat = fs.statSync(file);
   const etag = '"' + stat.size + '-' + Math.round(stat.mtimeMs) + '"';
-  const headers = { 'Content-Type': TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream', ETag: etag, 'Cache-Control': 'no-cache' };
+  const type = TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream';
+  const headers = { 'Content-Type': type, ETag: etag, 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff' };
+  if (csp) headers['Content-Security-Policy'] = csp;
+  else if (/^text\/html/.test(type)) headers['Content-Security-Policy'] = EDITOR_CSP;
   if (req.headers['if-none-match'] === etag) { res.writeHead(304, headers); return res.end(); }
   headers['Content-Length'] = stat.size;
   res.writeHead(200, headers);
@@ -134,7 +142,7 @@ function createServer(opts) {
     if (seg[0] === 'files' && seg.length >= 2) {
       const f = await backend.projectFile(seg.slice(1).join('/'));
       if (!f) return send(res, 404, 'Not found');
-      return send(res, 200, f.data, TYPES[path.extname(f.path).toLowerCase()] || f.mime, { 'Cache-Control': 'no-cache' });
+      return send(res, 200, f.data, TYPES[path.extname(f.path).toLowerCase()] || f.mime, { 'Cache-Control': 'no-cache', 'Content-Security-Policy': FILE_CSP, 'X-Content-Type-Options': 'nosniff' });
     }
     // 発表用 HTML をその場で組み立てる（保存済みの内容が対象）
     if (seg[0] === 'present' && seg.length === 1) return send(res, 200, (await backend.buildDeck(backend.project, previewOpts())).html, TYPES['.html']);

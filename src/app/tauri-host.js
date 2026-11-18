@@ -70,7 +70,7 @@
         throw new KS.backend.UserError('PDF の生成に失敗しました: ' + e.message, 500);
       }
     },
-    reveal: (p) => T.opener.revealItemInDir(p),
+    reveal: (p) => wrap(invoke('reveal', { path: p })),
   };
 
   const backend = KS.backend.createBackend(host, { desktop: true });
@@ -97,7 +97,9 @@
     if (!p) return rel;
     let clean = String(rel).split(/[?#]/)[0];
     try { clean = decodeURI(clean); } catch (e) { /* そのまま */ }
-    return T.core.convertFileSrc(P.join(p.dir, clean));
+    // プロジェクトの外（../ や絶対パス）を指すものは表示しない
+    const full = P.inside(p.dir, clean);
+    return full ? T.core.convertFileSrc(full) : '';
   }
 
   // ---- 発表・資料のプレビュー（別ウィンドウ） ----
@@ -113,9 +115,11 @@
     const file = P.join(dir, kind + '.html');
     await host.writeFile(file, built.html);
     // ウィンドウは Rust 側で作る（発表者ビューの別ウィンドウ＝window.open を許可するため）
+    // 開けるのは preview フォルダの HTML だけ（Rust 側で確かめる）
     await wrap(invoke('open_page', {
       label: kind === 'present' ? 'present' : 'doc',
-      url: T.core.convertFileSrc(file) + (hash || ''),
+      file,
+      hash: hash || '',
       title: (built.title || p.name) + (kind === 'present' ? ' — 発表' : ' — 資料'),
       width: kind === 'present' ? 1280 : 900,
       height: kind === 'present' ? 760 : 1000,
@@ -132,7 +136,14 @@
   };
 
   // ---- ファイルメニュー（OS のダイアログ） ----
-  const D = T.dialog;
+  const D = T.dialog; // メッセージのダイアログだけに使う（ファイルを選ぶダイアログは Rust の pick）
+  /**
+   * ファイル / フォルダを選ぶ（kind: file / folder / save）。選んだ場所だけが、ファイル操作を許可される（main.rs の pick）。
+   * @returns {Promise<string|null>}
+   */
+  const pickPath = (kind, o) => wrap(invoke('pick', { kind, title: o.title, defaultPath: o.defaultPath || null, filters: o.filters || null }));
+  /** 許可していない場所（前の版の「最近使ったもの」など）なら、開いてよいか OS のダイアログで聞く */
+  const allowed = (p) => wrap(invoke('confirm_open', { path: p }));
   const restart = () => window.KSE && window.KSE.restart();
   async function run(fn) {
     try {
@@ -150,7 +161,7 @@
   /** 保存先を選んで .kami に保存する。保存したら true */
   async function saveAsKamiDialog() {
     const p = backend.project;
-    const file = await D.save({ title: '1 ファイル（.kami）として保存', defaultPath: (p ? p.name.replace(/（.*）/, '') : '発表') + '.kami', filters: [KAMI] });
+    const file = await pickPath('save', { title: '1 ファイル（.kami）として保存', defaultPath: (p ? p.name.replace(/（.*）/, '') : '発表') + '.kami', filters: [KAMI] });
     if (!file) return false;
     await backend.saveAsKami(/\.kami$/i.test(file) ? file : file + '.kami');
     unsavedEdits = false;
@@ -193,42 +204,42 @@
     desktop: true,
     newProject: (kind) => leave('新しく作る', async () => {
       const target = kind === 'kami'
-        ? await D.save({ title: '新しい 1 ファイル（.kami）を作る', defaultPath: '新しい発表.kami', filters: [KAMI] })
-        : await D.save({ title: '新しいプロジェクトのフォルダを作る（フォルダ名を入力）', defaultPath: '新しい発表' });
+        ? await pickPath('save', { title: '新しい 1 ファイル（.kami）を作る', defaultPath: '新しい発表.kami', filters: [KAMI] })
+        : await pickPath('save', { title: '新しいプロジェクトのフォルダを作る（フォルダ名を入力）', defaultPath: '新しい発表' });
       if (!target) return;
       if (kind === 'kami') await backend.createKami(/\.kami$/i.test(target) ? target : target + '.kami');
       else await backend.createFolder(target);
     })(),
     openFolder: leave('別のものを開く', async () => {
-      const dir = pathOf(await D.open({ title: 'プロジェクトのフォルダを開く（slides.md のあるフォルダ）', directory: true }));
+      const dir = pathOf(await pickPath('folder', { title: 'プロジェクトのフォルダを開く（slides.md のあるフォルダ）' }));
       if (dir) await backend.open(dir);
     }),
     openFile: leave('別のものを開く', async () => {
-      const file = pathOf(await D.open({ title: 'ファイルを開く', filters: [KAMI, { name: 'slides.md', extensions: ['md'] }] }));
+      const file = pathOf(await pickPath('file', { title: 'ファイルを開く', filters: [KAMI, { name: 'slides.md', extensions: ['md'] }] }));
       if (file) await backend.open(file);
     }),
-    openPath: (p) => leave('別のものを開く', () => backend.open(p))(),
+    openPath: (p) => leave('別のものを開く', async () => { if (await allowed(p)) await backend.open(p); })(),
     openSample: leave('サンプルを開く', () => backend.openSample()),
     saveAsKami: () => run(saveAsKamiDialog),
     saveAsFolder: () => run(async () => {
-      const dir = await D.save({ title: 'フォルダとして保存（新しいフォルダ名を入力）', defaultPath: backend.project ? backend.project.name.replace(/（.*）/, '') : '発表' });
+      const dir = await pickPath('save', { title: 'フォルダとして保存（新しいフォルダ名を入力）', defaultPath: backend.project ? backend.project.name.replace(/（.*）/, '') : '発表' });
       if (dir) await backend.saveAsFolder(dir);
     }),
     close: leave('閉じる', () => backend.close()),
-    reveal: async () => { const p = backend.project; if (p && !p.temporary) await T.opener.revealItemInDir(p.kamiFile || p.dir); },
-    openExported: (file) => T.opener.openPath(file),
+    reveal: async () => { const p = backend.project; if (p && !p.temporary) await wrap(invoke('reveal', { path: p.kamiFile || p.dir })); },
+    openExported: (file) => wrap(invoke('open_exported', { path: file })),
     /** 読み込む自作テーマを選ぶ（kind: folder = フォルダ / file = theme.json か zip） */
     async pickThemeSource(kind) {
       await ready;
       const r = kind === 'folder'
-        ? await D.open({ title: 'テーマのフォルダを選ぶ（theme.json の入ったフォルダ）', directory: true })
-        : await D.open({ title: 'テーマを選ぶ（theme.json か zip）', filters: [{ name: 'テーマ', extensions: ['json', 'zip'] }] });
+        ? await pickPath('folder', { title: 'テーマのフォルダを選ぶ（theme.json の入ったフォルダ）' })
+        : await pickPath('file', { title: 'テーマを選ぶ（theme.json か zip）', filters: [{ name: 'テーマ', extensions: ['json', 'zip'] }] });
       return pathOf(r) || null;
     },
     /** テーマの書き出し先（zip）を選ぶ */
     async pickThemeExport(id) {
       await ready;
-      const file = await D.save({ title: 'テーマを zip に書き出す', defaultPath: id + '.zip', filters: [{ name: 'zip', extensions: ['zip'] }] });
+      const file = await pickPath('save', { title: 'テーマを zip に書き出す', defaultPath: id + '.zip', filters: [{ name: 'zip', extensions: ['zip'] }] });
       if (!file) return null;
       return /\.zip$/i.test(file) ? file : file + '.zip';
     },
@@ -240,7 +251,7 @@
       const names = { html: 'HTML', pdf: 'PDF', docx: 'Word', odt: 'OpenDocument テキスト', pptx: 'PowerPoint', odp: 'OpenDocument プレゼンテーション' };
       const base = (p ? p.name.replace(/（.*）/, '') : '発表') + (o.kind === 'doc' ? '-資料' : '');
       const dir = p ? p.defaultOutDir() : '';
-      const file = await D.save({
+      const file = await pickPath('save', {
         title: '書き出し先を選ぶ',
         defaultPath: dir && !p.temporary ? P.join(dir, base + '.' + ext) : base + '.' + ext,
         filters: [{ name: names[ext] || ext, extensions: [ext] }],

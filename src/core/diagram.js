@@ -400,6 +400,48 @@
     return Object.assign({}, model, { items: model.items.map((it) => (it.src ? Object.assign({}, it, { src: '#ks-img-' + it.id }) : it)) });
   }
 
+  /**
+   * 読み込んだモデルの値を、決まった形にそろえる（他人から受け取った図形ファイルに、文字列を混ぜた座標や
+   * 引用符を含む ID などがあっても、画面に描くときに HTML / SVG として解釈されないように）。
+   */
+  const SHAPE_IDS = new Set(SHAPES.map((s) => s[0]).concat(['image']));
+  const STYLE_KEYS = new Set(Object.keys(DEFAULT_SHAPE_STYLE).concat(Object.keys(DEFAULT_LINE_STYLE), ['fit']));
+  function normalizeModel(model) {
+    const n = (v) => { const x = Number(v); return Number.isFinite(x) ? x : 0; };
+    const okId = (v) => typeof v === 'string' && /^[\w-]{1,40}$/.test(v);
+    const style = (s) => {
+      const out = {};
+      for (const [k, v] of Object.entries(s && typeof s === 'object' ? s : {})) {
+        if (!STYLE_KEYS.has(k)) continue;
+        if (typeof v === 'number' || typeof v === 'boolean') out[k] = v;
+        else if (typeof v === 'string' && /^[#\w.\s(),%-]{0,60}$/.test(v)) out[k] = v; // 色・none・solid などだけ
+      }
+      return out;
+    };
+    const end = (e) => (e && okId(e.id) ? { id: e.id } : { x: n(e && e.x), y: n(e && e.y) });
+    const items = [];
+    const seen = new Set();
+    for (const it of Array.isArray(model.items) ? model.items : []) {
+      if (!it || !okId(it.id) || seen.has(it.id)) continue;
+      seen.add(it.id);
+      const text = typeof it.text === 'string' ? it.text : '';
+      if (it.type === 'shape') {
+        const o = { id: it.id, type: 'shape', shape: SHAPE_IDS.has(it.shape) ? it.shape : 'rect', x: n(it.x), y: n(it.y), w: Math.max(1, n(it.w)), h: Math.max(1, n(it.h)), text, style: style(it.style) };
+        if (o.shape === 'image') {
+          o.src = typeof it.src === 'string' && /^data:image\/(?:png|jpe?g|gif|webp|svg\+xml|avif);base64,[A-Za-z0-9+/=]+$/.test(it.src) ? it.src : '';
+          if (Number.isFinite(Number(it.ratio))) o.ratio = Number(it.ratio);
+        }
+        items.push(o);
+      } else if (it.type === 'line') {
+        items.push({ id: it.id, type: 'line', route: it.route === 'elbow' ? 'elbow' : 'straight', from: end(it.from), to: end(it.to), text, style: style(it.style) });
+      }
+    }
+    const out = { version: 1, font: typeof model.font === 'string' ? model.font.replace(/[<>"]/g, '') : '', items };
+    if (typeof model.halo === 'string' && /^[#\w]{0,20}$/.test(model.halo)) out.halo = model.halo;
+    if (model.defaults && typeof model.defaults === 'object') out.defaults = { shape: style(model.defaults.shape), line: style(model.defaults.line) };
+    return out;
+  }
+
   /** 保存された SVG から編集用データを取り出す（図形のファイルでなければ null） */
   function fromSvg(text) {
     const m = new RegExp('<metadata id="' + META_ID + '">([\\s\\S]*?)</metadata>').exec(String(text || ''));
@@ -413,14 +455,14 @@
         const im = new RegExp('<image id="' + id + '" href="([^"]*)"').exec(text);
         it.src = im ? unesc(im[1]) : '';
       }
-      return model;
+      return normalizeModel(model);
     } catch (e) {
       return null;
     }
   }
 
   return {
-    EXT, SHAPES, DEFAULT_SHAPE_STYLE, DEFAULT_LINE_STYLE, META_ID, shapeStyle,
+    EXT, SHAPES, DEFAULT_SHAPE_STYLE, DEFAULT_LINE_STYLE, META_ID, shapeStyle, normalizeModel,
     newModel, polygon, shapeOutline, textBox, linePoints, boundaryPoint, sidePoint, midPoint, byId, bounds,
     wrapText, itemSvg, toSvg, fromSvg, isDiagramPath,
   };

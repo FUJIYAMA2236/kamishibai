@@ -423,3 +423,52 @@ test('日本語の折り返し: 既定は文節（data-line-break="phrase"）、
   const out = renderOne('# A', { tokens: { lineBreak: 'char' } });
   assert.equal(out.deckAttrs['data-line-break'], 'char');
 });
+
+test('セキュリティ: 原稿の HTML は許可したタグだけ。スクリプト・イベント属性・危ないリンクは動かない', () => {
+  const html = (src) => md.render(src);
+  const bad = [
+    '<img src=x onerror=alert(1)>', '<IMG SRC=x OnError=y>', '<svg onload=x>', '<script>alert(1)</script>', '<iframe src="https://e.invalid"></iframe>',
+    '<style>b{}</style>', '<a href="javascript:x">l</a>', '<object data=x></object>', '<p/onclick=x>t</p>', '<math><mi xlink:href="javascript:x">m</mi></math>',
+  ];
+  for (const s of bad) {
+    const out = html(s);
+    assert.ok(!/<(img|svg|script|iframe|style|a|object|math)\b/i.test(out), s + ' → ' + out);
+    assert.ok(!/\son[a-z]+=/i.test(out.replace(/&lt;[\s\S]*?&gt;/g, '')), s + ' → ' + out);
+  }
+  // 許可したタグは使える（属性は class だけ）
+  assert.equal(html('<kbd class="k x&quot;y">C</kbd><br><mark onclick="x">m</mark>').trim(), '<p><kbd class="k">C</kbd><br><mark>m</mark></p>');
+  assert.equal(html('<details open ontoggle=x>a</details>').trim(), '<details>a</details>');
+  // Markdown のリンク・画像の危ないスキームは無効、画像の {…} は大きさと class 名だけ
+  assert.ok(!html('[m](javascript:y)').includes('href="javascript'));
+  assert.ok(!/src="(javascript|file):/i.test(html('![b](javascript:x) ![c](file:///etc/passwd)')));
+  const img = html('![c](assets/a.png){width=1px;background:url(x) height=2em .ok}');
+  assert.ok(img.includes('style="height:2em"') && img.includes('class="ok"') && !img.includes('background'), img);
+});
+
+test('セキュリティ: 図形ファイルの中の値は、読み込むときに決まった形にそろえる', () => {
+  const D = require('../src/core/diagram');
+  const evil = {
+    version: 1, font: 'x"><script>', items: [
+      { id: 'a" onmouseover="x', type: 'shape', shape: 'rect', x: 0, y: 0, w: 10, h: 10, text: '', style: {} },
+      { id: 'b', type: 'shape', shape: 'rect"><x', x: '1" onload="x', y: 0, w: 10, h: 10, text: '<b>', style: { fill: 'red" onload="x', stroke: '#fff' } },
+      { id: 'c', type: 'shape', shape: 'image', src: 'javascript:alert(1)', x: 0, y: 0, w: 1, h: 1, text: '', style: {} },
+    ],
+  };
+  const escAttr = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const m = D.fromSvg('<svg><metadata id="' + D.META_ID + '">' + escAttr(JSON.stringify(evil)) + '</metadata></svg>');
+  assert.deepEqual(m.items.map((i) => i.id), ['b', 'c']); // 不正な ID のものは捨てる
+  assert.equal(m.items[0].shape, 'rect');
+  assert.equal(m.items[0].x, 0);
+  assert.equal(m.items[0].style.fill, undefined);
+  assert.equal(m.items[0].style.stroke, '#fff');
+  assert.equal(m.items[1].src, '');
+  assert.ok(!/[<>"]/.test(m.font));
+});
+
+test('セキュリティ: プロジェクトの外を指すパスは inside が null を返す（Windows の書き方も）', () => {
+  const P = require('../src/app/pathx');
+  for (const rel of ['..\\x', '../x', 'a/../../x', 'a\\..\\..\\x', 'C:\\Windows\\win.ini', 'C:/x', 'D:\\x', '\\\\server\\share\\x', '/etc/passwd']) {
+    assert.equal(P.inside('C:\\p\\deck', rel), null, rel);
+  }
+  assert.equal(P.inside('C:\\p\\deck', 'assets\\a.png'), 'C:\\p\\deck\\assets\\a.png');
+});

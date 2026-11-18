@@ -197,4 +197,14 @@ console.log("hello");
 
 ## HTML
 
-Markdown の中に HTML をそのまま書けます（`<kbd>Ctrl</kbd>`、`<small>注釈</small>`、`<mark>強調</mark>` など）。
+Markdown の中に、文字の飾りに使う HTML のタグを書けます（`<kbd>Ctrl</kbd>`、`<small>注釈</small>`、`<mark>強調</mark>`、`<br>` など）。
+
+原稿は .kami などで他の人から受け取ることもあるので、安全のため、使える HTML は次のタグに限っています。属性は `class` だけが使えます。
+
+`b` `strong` `i` `em` `u` `s` `del` `ins` `mark` `small` `sub` `sup` `kbd` `code` `samp` `var` `abbr` `q` `cite` `span` `div` `p` `br` `hr`
+`ruby` `rt` `rp` `details` `summary` `blockquote` `ul` `ol` `li` `dl` `dt` `dd` `table` `thead` `tbody` `tr` `th` `td` `figure` `figcaption` `center`
+
+- これ以外のタグ（`<script>` `<img>` `<iframe>` `<style>` `<a>` など）は、実行されずに文字のまま表示されます。画像は `![説明](assets/…)`、リンクは `[文字](https://…)` で書いてください
+- `onclick` などの属性、`<!-- -->` のコメントは取り除かれます
+- 画像はプロジェクトのフォルダの中のものだけが使えます（`../` やほかの場所を指す画像は表示・書き出しされません）
+- ネット上の画像（`https://…`）は、アプリと書き出した HTML では読み込みません（開いただけで外部と通信しないように）。手元に保存してから、ドラッグ＆ドロップで入れてください

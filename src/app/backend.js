@@ -27,7 +27,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (schema, parse, render, P) {
   'use strict';
 
-  const VERSION = '0.4.0';
+  const VERSION = '0.4.1';
   const KAMI_EXT = '.kami';
   const enc = new TextEncoder();
   const dec = new TextDecoder();
@@ -564,7 +564,58 @@
     let md = null;
     const markdown = () => md || (md = render.createMarkdown(opts.markdownit || (typeof window !== 'undefined' && window.markdownit), opts.hljs || (typeof window !== 'undefined' && window.hljs)));
     const bundledText = async (rel) => { const b = await H.bundled.read(rel); if (!b) throw new UserError('ツールのファイルが見つかりません: ' + rel, 500); return toText(b); };
-    const inlineScript = (code) => '<script>' + code.replace(/<\/script/gi, '<\\/script') + '</script>';
+    /**
+     * 書き出す HTML のスクリプトの集め役。こちらで入れたインラインのスクリプトだけを覚えておき、
+     * CSP（csp()）でそのハッシュだけを許す（原稿に何かが紛れ込んでも、それは動かない）。
+     */
+    function scriptSet() {
+      const codes = [];
+      const srcs = [];
+      return {
+        inline(code) {
+          const c = code.replace(/<\/script/gi, '<\\/script');
+          codes.push(c);
+          return '<script>' + c + '</script>';
+        },
+        src(url) {
+          srcs.push(url);
+          return '<script src="' + render.esc(url) + '"></script>';
+        },
+        /** <meta http-equiv="Content-Security-Policy"> */
+        async csp() {
+          const hashes = [];
+          for (const c of codes) {
+            const h = await sha256(c);
+            if (h) hashes.push("'sha256-" + h + "'");
+          }
+          // 外のファイルのスクリプト（mermaid）は、その場所（オリジン）だけを許す。相対パスなら 'self'
+          const origins = new Set();
+          for (const u of srcs) {
+            const m = /^(https?:\/\/[^/]+)/i.exec(u);
+            origins.add(m ? m[1] : "'self'");
+          }
+          const policy = [
+            "default-src 'none'",
+            'script-src ' + hashes.concat(Array.from(origins)).join(' '),
+            "style-src 'unsafe-inline'",
+            "img-src 'self' data: blob:",
+            "font-src 'self' data:",
+            "connect-src 'self'",
+            "object-src 'none'",
+            "base-uri 'none'",
+            "form-action 'none'",
+            "frame-src 'none'",
+          ].join('; ');
+          return '<meta http-equiv="Content-Security-Policy" content="' + render.esc(policy) + '">';
+        },
+      };
+    }
+    async function sha256(text) {
+      if (H.sha256) return H.sha256(text);
+      const subtle = typeof crypto !== 'undefined' && crypto.subtle;
+      if (!subtle) return null;
+      return base64(new Uint8Array(await subtle.digest('SHA-256', enc.encode(text))));
+    }
     const inlineStyle = (css, label) => '<style' + (label ? ' data-ks="' + render.esc(label) + '"' : '') + '>\n' + css.replace(/<\/style/gi, '<\\/style') + '\n</style>';
     const page = (lines) => lines.filter((l) => l !== '').join('\n') + '\n';
     const encodePath = (p) => p.split('/').map(encodeURIComponent).join('/');
@@ -599,7 +650,13 @@
         if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(src)) continue;
         let rel = src.split(/[?#]/)[0];
         try { rel = decodeURIComponent(rel); } catch (e) { /* そのまま */ }
-        const full = P.resolve(deck.dir, rel);
+        // プロジェクトの外（../ や絶対パス）は読まない（他人の原稿で、手元の別のファイルを書き出しに入れられないように）
+        const full = P.inside(deck.dir, rel);
+        if (!full) {
+          warnings.push('プロジェクトのフォルダの外にある画像は使えません: ' + rel);
+          resolved.set(src, '');
+          continue;
+        }
         const mime = MIME[P.extname(full).toLowerCase()];
         const s = await H.stat(full);
         let out = src;
@@ -616,14 +673,14 @@
         resolved.set(src, out);
       }
       const resolveAsset = (src) => (resolved.has(src) ? resolved.get(src) : src);
-      async function mermaidScript() {
-        if (o.scriptUrl) return '<script src="' + render.esc(o.scriptUrl) + '"></script>';
+      async function mermaidScript(S) {
+        if (o.scriptUrl) return S.src(o.scriptUrl);
         if (mode === 'files') {
           const to = o.filesDir + '/mermaid.min.js';
           files.push({ bundled: 'vendor/mermaid.min.js', to });
-          return '<script src="' + encodePath(to) + '"></script>';
+          return S.src(encodePath(to));
         }
-        return inlineScript(await bundledText('vendor/mermaid.min.js'));
+        return S.inline(await bundledText('vendor/mermaid.min.js'));
       }
       return { deck, parsed, theme, warnings, files, resolveAsset, mermaidScript };
     }
@@ -645,11 +702,24 @@
       const out = render.renderDeck(L.parsed, L.deck.design, L.theme, { md: markdown(), resolveAsset: L.resolveAsset });
       const title = out.title || p.name;
       const config = { title, progress: !!out.resolved.chrome.progress };
+      const S = scriptSet();
+      // スクリプトを先に組み立てる（CSP のハッシュを head に入れるため）
+      const scripts = [
+        out.usesMermaid ? await L.mermaidScript(S) : '',
+        S.inline(await bundledText('runtime/runtime.js')),
+        S.inline('Kamishibai.start(' + JSON.stringify(config).replace(/</g, '\\u003c') + ');'),
+        // 図を描き終えたら ks-ready を付ける（PDF 化はこれを待つ）
+        out.usesMermaid
+          ? S.inline("Kamishibai.renderMermaid(document.body).then(function () { document.documentElement.classList.add('ks-ready'); });")
+          : S.inline("document.documentElement.classList.add('ks-ready');"),
+      ];
       const html = page([
         '<!doctype html>',
         '<html lang="' + render.esc(L.parsed.meta.lang || 'ja') + '" class="ks-page">',
         '<head>',
-        ...head(L.parsed, title),
+        '<meta charset="utf-8">',
+        await S.csp(),
+        ...head(L.parsed, title).slice(1),
         inlineStyle(await bundledText('runtime/runtime.css'), 'runtime'),
         L.theme.css ? inlineStyle(L.theme.css, 'theme:' + (L.theme.id || '')) : '',
         L.deck.css ? inlineStyle(L.deck.css, 'deck') : '',
@@ -661,13 +731,7 @@
         out.slides.map((s) => s.html).join('\n'),
         '</div>',
         '</div>',
-        out.usesMermaid ? await L.mermaidScript() : '',
-        inlineScript(await bundledText('runtime/runtime.js')),
-        inlineScript('Kamishibai.start(' + JSON.stringify(config) + ');'),
-        // 図を描き終えたら ks-ready を付ける（PDF 化はこれを待つ）
-        out.usesMermaid
-          ? inlineScript("Kamishibai.renderMermaid(document.body).then(function () { document.documentElement.classList.add('ks-ready'); });")
-          : inlineScript("document.documentElement.classList.add('ks-ready');"),
+        ...scripts,
         '</body>',
         '</html>',
       ]);
@@ -680,11 +744,21 @@
       const L = await loadDeck(p, o);
       const out = render.renderDocument(L.parsed, L.deck.design, L.theme, { md: markdown(), resolveAsset: L.resolveAsset, notes: !!o.notes });
       const title = out.title || p.name;
+      const S = scriptSet();
+      const scripts = [
+        out.usesMermaid ? await L.mermaidScript(S) : '',
+        out.usesMermaid ? S.inline(await bundledText('runtime/runtime.js')) : '',
+        out.usesMermaid
+          ? S.inline("Kamishibai.renderMermaid(document.body).then(function () { document.documentElement.classList.add('ks-ready'); });")
+          : S.inline("document.documentElement.classList.add('ks-ready');"),
+      ];
       const html = page([
         '<!doctype html>',
         '<html lang="' + render.esc(L.parsed.meta.lang || 'ja') + '" class="ks-doc-page">',
         '<head>',
-        ...head(L.parsed, title),
+        '<meta charset="utf-8">',
+        await S.csp(),
+        ...head(L.parsed, title).slice(1),
         inlineStyle(await bundledText('runtime/doc.css'), 'doc'),
         inlineStyle('@page { size: A4; margin: 18mm 16mm; }', 'page'),
         '</head>',
@@ -694,11 +768,7 @@
         out.html,
         '</article>',
         '</div>',
-        out.usesMermaid ? await L.mermaidScript() : '',
-        out.usesMermaid ? inlineScript(await bundledText('runtime/runtime.js')) : '',
-        out.usesMermaid
-          ? inlineScript("Kamishibai.renderMermaid(document.body).then(function () { document.documentElement.classList.add('ks-ready'); });")
-          : inlineScript("document.documentElement.classList.add('ks-ready');"),
+        ...scripts,
         '</body>',
         '</html>',
       ]);
@@ -706,7 +776,13 @@
     }
 
     /** 書き出し先（指定が無ければ、フォルダのプロジェクトは dist/、.kami はその隣） */
-    const outPath = (p, out, suffix) => (out ? H.absolute(out) : P.join(p.defaultOutDir(), p.name + suffix));
+    // 指定された書き出し先の拡張子が形式と違えば、形式の拡張子を付ける（.hta などの別の種類のファイルとして書かれないように）
+    const outPath = (p, out, suffix) => {
+      if (!out) return P.join(p.defaultOutDir(), p.name + suffix);
+      const want = suffix.slice(suffix.lastIndexOf('.')).toLowerCase();
+      const file = H.absolute(out);
+      return file.toLowerCase().endsWith(want) ? file : file + want;
+    };
     const filesDirFor = (file) => P.basename(file, P.extname(file)) + '_files';
 
     async function writeOut(file, result) {

@@ -19,7 +19,8 @@ const { writeZip, readZip } = require('../src/node/zip');
 const { createServer, listen } = require('../src/node/server');
 const { removeDir, removeFile } = require('../src/node/fsutil');
 
-const PNG_1PX = new Uint8Array(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64'));
+const PNG_1PX_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+const PNG_1PX = new Uint8Array(Buffer.from(PNG_1PX_B64, 'base64'));
 const userThemes = path.join(USERDATA, 'themes');
 test.after(() => removeDir(USERDATA));
 
@@ -293,7 +294,7 @@ function request(port, opts, body) {
     const req = http.request(Object.assign({ host: '127.0.0.1', port }, opts), (res) => {
       const chunks = [];
       res.on('data', (c) => chunks.push(c));
-      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString('utf8') }));
+      res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: Buffer.concat(chunks).toString('utf8') }));
     });
     req.on('error', reject);
     req.end(body);
@@ -346,4 +347,48 @@ test('サーバー: 開く前はスタート状態・API・Host/Origin 検査・
 
   await request(port, { method: 'POST', path: '/api/close', headers: json }, '{}');
   assert.equal(JSON.parse((await request(port, { path: '/api/state', headers: host })).body).project, null);
+});
+
+test('セキュリティ: 書き出す HTML は CSP で自分のスクリプトだけを許し、原稿の HTML とプロジェクトの外の画像は入らない', async (t) => {
+  const crypto = require('crypto');
+  const { b, p } = await newProject(t);
+  const outside = path.join(path.dirname(p.dir), 'secret.png');
+  fs.writeFileSync(outside, PNG_1PX);
+  await p.writeMd('# 表紙\n\n<img src=x onerror="alert(1)">\n\n![外](../secret.png)\n\n```mermaid\nflowchart LR\n  A --> B\n```');
+  for (const built of [await b.buildDeck(p), await b.buildDocument(p)]) {
+    const meta = /<meta http-equiv="Content-Security-Policy" content="([^"]+)">/.exec(built.html);
+    assert.ok(meta, 'CSP がある');
+    const policy = meta[1].replace(/&#39;/g, "'");
+    assert.match(policy, /default-src 'none'/);
+    assert.doesNotMatch(policy, /unsafe-inline'[^;]*;?\s*$|script-src[^;]*unsafe/);
+    // インラインのスクリプトは、すべてハッシュで許されている（それ以外は無い）
+    const scripts = Array.from(built.html.matchAll(/<script>([\s\S]*?)<\/script>/g)).map((m) => m[1]);
+    assert.ok(scripts.length >= 1);
+    for (const s of scripts) assert.ok(policy.includes("'sha256-" + crypto.createHash('sha256').update(s).digest('base64') + "'"));
+    assert.ok(!/<img src="x"|onerror="alert/.test(built.html), '原稿の img は文字になる');
+    assert.ok(built.warnings.some((w) => /フォルダの外/.test(w)), '外の画像は警告');
+    assert.ok(!built.html.includes(PNG_1PX_B64), '外の画像は埋め込まない');
+  }
+  // 書き出し先の拡張子は形式に合わせる（.hta などにはならない）
+  const out = path.join(tempDir(t), 'x.hta');
+  const r = await b.exportDeck(p, { out });
+  assert.equal(r.file, out + '.html');
+});
+
+test('セキュリティ: ブラウザ版のサーバーは CSP を付け、プロジェクトのファイルはページとして動かない', async (t) => {
+  const dir = tempDir(t);
+  const server = createServer({ workRoot: path.join(dir, 'work') });
+  const port = await listen(server, 0, 0);
+  t.after(() => server.close());
+  const host = { Host: 'localhost:' + port };
+  const json = Object.assign({ 'Content-Type': 'application/json' }, host);
+  const target = path.join(dir, 'p');
+  await request(port, { method: 'POST', path: '/api/new', headers: json }, JSON.stringify({ path: target }));
+  fs.writeFileSync(path.join(target, 'assets', 'x.svg'), '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
+  const index = await request(port, { path: '/', headers: host });
+  assert.match(index.headers['content-security-policy'], /script-src 'self'/);
+  assert.doesNotMatch(index.body, /<script>|\son(load|error)=/); // インラインのスクリプトが無い
+  const svg = await request(port, { path: '/files/assets/x.svg', headers: host });
+  assert.match(svg.headers['content-security-policy'], /sandbox/);
+  assert.match(svg.headers['content-security-policy'], /default-src 'none'/);
 });

@@ -10,6 +10,12 @@ pub async fn print_pdf(
     width: f64,
     height: f64,
 ) -> Result<(), String> {
+    // 下書きの HTML も、書き出す PDF も、許可した場所の中だけ（main.rs の check）
+    let html = crate::check_path(&app, &html)?.to_string_lossy().into_owned();
+    let pdf = crate::check_path(&app, &pdf)?.to_string_lossy().into_owned();
+    if !pdf.to_lowercase().ends_with(".pdf") {
+        return Err("PDF の書き出し先が不正です".into());
+    }
     imp::print(app, html, pdf, kind, width, height).await
 }
 

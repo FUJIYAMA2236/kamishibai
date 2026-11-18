@@ -43,6 +43,8 @@ function createNodeHost(opts) {
   opts = opts || {};
   return {
     platform: process.platform,
+    /** 書き出す HTML の CSP に入れる、インラインのスクリプトのハッシュ（base64） */
+    sha256: (text) => require('crypto').createHash('sha256').update(text, 'utf8').digest('base64'),
     async readFile(p) { return u8(await fs.promises.readFile(p)); },
     async writeFile(p, data) { await fs.promises.writeFile(p, typeof data === 'string' ? data : Buffer.from(data.buffer, data.byteOffset, data.byteLength)); },
     async stat(p) {
